@@ -141,6 +141,10 @@ class QuippyWidget {
                                         <img src="${chrome.runtime.getURL('assets/temperature.svg')}" width="18" height="18" alt="" class="item-icon">
                                         <span>Temperature</span>
                                     </button>
+                                    <button class="quippy-dropdown-item" data-function="translator" data-icon="translator.svg">
+                                        <img src="${chrome.runtime.getURL('assets/translator.svg')}" width="18" height="18" alt="" class="item-icon">
+                                        <span>Translator</span>
+                                    </button>
                                     <button class="quippy-dropdown-item" data-function="health" data-icon="health.svg">
                                         <img src="${chrome.runtime.getURL('assets/health.svg')}" width="18" height="18" alt="" class="item-icon">
                                         <span>Health</span>
@@ -444,6 +448,7 @@ class QuippyWidget {
             'timezone': 'Timezone',
             'calculate': 'Maths',
             'meaning': 'Meaning',
+            'translator': 'Translator',
             'health': 'Health',
             'digital': 'Digital',
             'design': 'Design'
@@ -461,6 +466,7 @@ class QuippyWidget {
             'timezone': 'PST',
             'calculate': 'Calculate',
             'meaning': 'define',
+            'translator': 'es',
             'health': 'Convert',
             'digital': 'Convert',
             'design': 'Convert'
@@ -545,7 +551,8 @@ class QuippyWidget {
             'solution.svg': 'solution.svg',
             'design.svg': 'design.svg',
             'area.svg': 'area.svg',
-            'volume.svg': 'volume.svg'
+            'volume.svg': 'volume.svg',
+            'translator.svg': 'translator.svg'
         };
         
         suggestionsList.innerHTML = suggestions.map(suggestion => {

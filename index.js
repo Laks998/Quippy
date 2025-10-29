@@ -166,6 +166,8 @@ class QuippyFunctions {
                 return this.getCalculationSuggestions(text);
             case 'meaning':
                 return this.getMeaningSuggestions(text);
+            case 'translator':
+                return this.getTranslatorSuggestions(text);
             default:
                 return [];
         }
@@ -470,6 +472,22 @@ class QuippyFunctions {
         return baseSuggestions;
     }
 
+    getTranslatorSuggestions(text) {
+        // Return popular language suggestions
+        return [
+            { label: 'Spanish 🇪🇸', value: 'es', icon: 'translator.svg' },
+            { label: 'French 🇫🇷', value: 'fr', icon: 'translator.svg' },
+            { label: 'German 🇩🇪', value: 'de', icon: 'translator.svg' },
+            { label: 'Japanese 🇯🇵', value: 'ja', icon: 'translator.svg' },
+            { label: 'Chinese 🇨🇳', value: 'zh', icon: 'translator.svg' },
+            { label: 'Italian 🇮🇹', value: 'it', icon: 'translator.svg' },
+            { label: 'Portuguese 🇵🇹', value: 'pt', icon: 'translator.svg' },
+            { label: 'Russian 🇷🇺', value: 'ru', icon: 'translator.svg' },
+            { label: 'Arabic 🇸🇦', value: 'ar', icon: 'translator.svg' },
+            { label: 'Hindi 🇮🇳', value: 'hi', icon: 'translator.svg' }
+        ];
+    }
+
     async processFunction(text, functionType, target) {
         switch (functionType) {
             case 'weight':
@@ -494,6 +512,8 @@ class QuippyFunctions {
                 return this.calculate(text);
             case 'meaning':
                 return await this.getMeaning(text, target);
+            case 'translator':
+                return await this.translateText(text, target);
             default:
                 return { value: 'Function not yet implemented', label: '' };
         }
@@ -1631,6 +1651,66 @@ class QuippyFunctions {
             return {
                 value: `"${text}"`,
                 label: `<span style="font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 400; color: #FF4444;">Unexpected error: ${error.message}</span>`
+            };
+        }
+    }
+
+    async translateText(text, targetLanguage) {
+        try {
+            const sourceText = text.trim();
+            console.log('🌐 Translating text:', sourceText, 'to', targetLanguage);
+            
+            // Send message to background script to perform translation
+            const response = await chrome.runtime.sendMessage({
+                action: 'translate-text',
+                text: sourceText,
+                targetLanguage: targetLanguage
+            });
+            
+            console.log('📥 Translation response:', response);
+            
+            if (response && response.success) {
+                // Language name mapping
+                const languageNames = {
+                    'es': 'Spanish',
+                    'fr': 'French',
+                    'de': 'German',
+                    'ja': 'Japanese',
+                    'zh': 'Chinese',
+                    'it': 'Italian',
+                    'pt': 'Portuguese',
+                    'ru': 'Russian',
+                    'ar': 'Arabic',
+                    'hi': 'Hindi',
+                    'ko': 'Korean',
+                    'nl': 'Dutch',
+                    'pl': 'Polish',
+                    'tr': 'Turkish',
+                    'vi': 'Vietnamese',
+                    'th': 'Thai',
+                    'sv': 'Swedish',
+                    'da': 'Danish',
+                    'fi': 'Finnish',
+                    'no': 'Norwegian'
+                };
+                
+                const langName = languageNames[targetLanguage] || targetLanguage.toUpperCase();
+                
+                return {
+                    value: response.translatedText,
+                    label: `Translated to ${langName}`
+                };
+            } else {
+                return {
+                    value: 'Translation failed',
+                    label: response.error || 'Could not translate text'
+                };
+            }
+        } catch (error) {
+            console.error('❌ Translation error:', error);
+            return {
+                value: 'Error',
+                label: 'Failed to translate text'
             };
         }
     }

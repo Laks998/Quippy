@@ -58,6 +58,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             });
         return true;
     }
+    
+    if (request.action === 'translate-text') {
+        fetchTranslation(request.text, request.targetLanguage)
+            .then(data => sendResponse(data))
+            .catch(error => {
+                sendResponse({ success: false, error: error.message || 'Unknown error' });
+            });
+        return true;
+    }
 });
 
 async function fetchWordMeaning(word) {
@@ -267,5 +276,51 @@ async function fetchTimezone(timezone) {
     } catch (error) {
         console.error('Timezone API error:', error);
         return { success: false, error: error.message || 'Failed to fetch timezone' };
+    }
+}
+
+async function fetchTranslation(text, targetLanguage) {
+    try {
+        if (!text || typeof text !== 'string' || text.trim().length === 0) {
+            return { success: false, error: 'Invalid text provided' };
+        }
+
+        if (!targetLanguage || typeof targetLanguage !== 'string') {
+            return { success: false, error: 'Invalid target language provided' };
+        }
+
+        const cleanText = text.trim();
+        const url = 'https://libretranslate.de/translate';
+        
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                q: cleanText,
+                source: 'auto',
+                target: targetLanguage,
+                format: 'text'
+            })
+        });
+        
+        if (!response.ok) {
+            return { success: false, error: `Translation API error: ${response.status}` };
+        }
+        
+        const data = await response.json();
+        
+        if (!data || !data.translatedText) {
+            return { success: false, error: 'No translation returned' };
+        }
+        
+        return {
+            success: true,
+            translatedText: data.translatedText
+        };
+    } catch (error) {
+        console.error('Translation API error:', error);
+        return { success: false, error: error.message || 'Failed to translate text' };
     }
 }
