@@ -483,8 +483,9 @@ class QuippyFunctions {
     }
 
     getTranslatorSuggestions(text) {
-        // Return popular language suggestions
+        // Return popular language suggestions with English first
         return [
+            { label: 'English 🇬🇧', value: 'en', icon: 'translator.svg' },
             { label: 'Spanish 🇪🇸', value: 'es', icon: 'translator.svg' },
             { label: 'French 🇫🇷', value: 'fr', icon: 'translator.svg' },
             { label: 'German 🇩🇪', value: 'de', icon: 'translator.svg' },
@@ -1665,9 +1666,6 @@ class QuippyFunctions {
         }
     }
 
-    // MINIMAL PATCH: Only update the translateText function in your original index.js
-// Replace ONLY this function (around line 1668)
-
     async translateText(text, targetLanguage) {
         try {
             const sourceText = text.trim();
@@ -1724,7 +1722,11 @@ class QuippyFunctions {
             // Convert to lowercase and get the proper language code
             const targetCode = languageCodeMap[targetLanguage.toLowerCase()] || targetLanguage;
             
-            console.log('🌐 Translating text:', sourceText, 'to', targetCode);
+            console.log('🌐 Translation request:', {
+                sourceText,
+                targetLanguage,
+                targetCode
+            });
             
             // Send message to background script to perform translation
             const response = await chrome.runtime.sendMessage({
@@ -1734,6 +1736,10 @@ class QuippyFunctions {
             });
             
             console.log('📥 Translation response:', response);
+            console.log('📥 Response type:', typeof response);
+            console.log('📥 Response.success:', response?.success);
+            console.log('📥 Response.translatedText:', response?.translatedText);
+            console.log('📥 Response.error:', response?.error);
             
             if (response && response.success) {
                 // Language name mapping for display
@@ -1769,16 +1775,18 @@ class QuippyFunctions {
                     label: `Translated to ${langName}`
                 };
             } else {
+                console.error('❌ Translation failed:', response);
                 return {
                     value: 'Translation failed',
-                    label: response.error || 'Could not translate text'
+                    label: response?.error || 'Could not translate text'
                 };
             }
         } catch (error) {
             console.error('❌ Translation error:', error);
+            console.error('Error stack:', error.stack);
             return {
                 value: 'Error',
-                label: 'Failed to translate text'
+                label: `Failed to translate: ${error.message}`
             };
         }
     }

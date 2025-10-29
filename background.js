@@ -289,62 +289,85 @@ async function fetchTranslation(text, targetLanguage) {
             return { success: false, error: 'Invalid target language provided' };
         }
 
-        // Detect source language based on character ranges
         const cleanText = text.trim();
-        let sourceLanguage = 'en'; // Default to English
         
-        // Detect common languages by character ranges
-        if (/[\u4e00-\u9fa5]/.test(cleanText)) {
-            sourceLanguage = 'zh-CN'; // Chinese
-        } else if (/[\u0600-\u06FF]/.test(cleanText)) {
-            sourceLanguage = 'ar'; // Arabic
-        } else if (/[\u0590-\u05FF]/.test(cleanText)) {
-            sourceLanguage = 'he'; // Hebrew
-        } else if (/[\u0400-\u04FF]/.test(cleanText)) {
-            sourceLanguage = 'ru'; // Russian
-        } else if (/[\u3040-\u309F\u30A0-\u30FF]/.test(cleanText)) {
-            sourceLanguage = 'ja'; // Japanese
-        } else if (/[\uAC00-\uD7AF]/.test(cleanText)) {
-            sourceLanguage = 'ko'; // Korean
-        } else if (/[\u0E00-\u0E7F]/.test(cleanText)) {
-            sourceLanguage = 'th'; // Thai
-        } else if (/[\u0900-\u097F]/.test(cleanText)) {
-            sourceLanguage = 'hi'; // Hindi
-        }
+        // Detect source language based on character ranges
+        let sourceLanguage = 'auto'; // Use auto-detection
         
-        const encodedText = encodeURIComponent(cleanText);
-        const langPair = `${sourceLanguage}|${targetLanguage}`;
-        const url = `https://api.mymemory.translated.net/get?q=${encodedText}&langpair=${langPair}`;
+        // Map common language codes to Google Translate format
+        const langMap = {
+            'zh': 'zh-CN',
+            'zh-cn': 'zh-CN',
+            'zh-tw': 'zh-TW'
+        };
         
-        console.log('🌐 Translating:', cleanText, 'from', sourceLanguage, 'to', targetLanguage);
+        const targetLang = langMap[targetLanguage.toLowerCase()] || targetLanguage.toLowerCase();
         
-        const response = await fetch(url);
+        console.log('🌐 Translation request:', {
+            text: cleanText,
+            targetLang: targetLang
+        });
+
+        // Using Google Translate's public API endpoint
+        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sourceLanguage}&tl=${targetLang}&dt=t&q=${encodeURIComponent(cleanText)}`;
+        
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+            }
+        });
         
         console.log('📥 Translation response status:', response.status);
         
         if (!response.ok) {
-            return { success: false, error: `API returned ${response.status}` };
+            console.error('❌ Translation API error:', response.status, response.statusText);
+            return { success: false, error: `Translation API returned ${response.status}` };
         }
         
         const data = await response.json();
-        console.log('✅ Translation data:', data);
+        console.log('📥 Translation raw data:', data);
         
-        if (!data || !data.responseData || !data.responseData.translatedText) {
+        // Google Translate API returns data in format: [[[translated_text, original_text, null, null, score], ...], ...]
+        if (!data || !Array.isArray(data) || data.length === 0) {
+            console.error('❌ Invalid translation response format');
+            return { success: false, error: 'Invalid translation response' };
+        }
+        
+        // Extract translated text from the response
+        let translatedText = '';
+        
+        if (data[0] && Array.isArray(data[0])) {
+            // Concatenate all translation segments
+            translatedText = data[0]
+                .filter(segment => segment && segment[0])
+                .map(segment => segment[0])
+                .join('');
+        }
+        
+        if (!translatedText || translatedText.trim().length === 0) {
+            console.error('❌ No translation text extracted');
             return { success: false, error: 'No translation returned' };
         }
         
-        // Check if translation actually worked
-        if (data.responseData.translatedText === cleanText) {
-            // Translation didn't change the text, might be wrong source language
-            return { success: false, error: 'Translation unavailable for this language pair' };
+        console.log('✅ Translation successful:', translatedText);
+        
+        // Check if translation actually changed the text
+        if (translatedText.toLowerCase().trim() === cleanText.toLowerCase().trim()) {
+            return { success: false, error: 'Text is already in target language or translation unavailable' };
         }
         
         return {
             success: true,
-            translatedText: data.responseData.translatedText
+            translatedText: translatedText.trim()
         };
+        
     } catch (error) {
-        console.error('Translation API error:', error);
-        return { success: false, error: error.message || 'Failed to translate text' };
+        console.error('❌ Translation error:', error);
+        console.error('Error stack:', error.stack);
+        return { 
+            success: false, 
+            error: error.message || 'Failed to translate text' 
+        };
     }
 }
