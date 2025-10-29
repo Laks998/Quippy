@@ -28,6 +28,13 @@
     }
   ],
   
+  "web_accessible_resources": [
+    {
+      "resources": ["assets/*"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  
   "icons": {
     "16": "assets/icon16.png",
     "48": "assets/icon48.png",

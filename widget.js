@@ -32,22 +32,31 @@ class QuippyWidget {
             return;
         }
 
+        // Get proper URLs for all assets using chrome.runtime.getURL
+        const logoUrl = chrome.runtime.getURL('assets/logo.svg');
+        const settingsUrl = chrome.runtime.getURL('assets/settings.svg');
+        const closeUrl = chrome.runtime.getURL('assets/close.svg');
+        const selectTextUrl = chrome.runtime.getURL('assets/selecttext.svg');
+        const refreshUrl = chrome.runtime.getURL('assets/refresh.svg');
+        const dropdownUrl = chrome.runtime.getURL('assets/dropdown.svg');
+        const searchUrl = chrome.runtime.getURL('assets/search.svg');
+
         // Create the widget HTML directly
         const widgetHTML = `
             <div id="quippy-widget" class="quippy-hidden">
                 <div class="quippy-header" id="quippy-header">
                     <div class="quippy-logo">
                         <span class="quippy-icon">
-                            <img src="assets/logo.svg" width="24" height="24" alt="Quippy">
+                            <img src="${logoUrl}" width="24" height="24" alt="Quippy">
                         </span>
                         <span class="quippy-title">Hi, I'm Quippy!</span>
                     </div>
                     <div class="quippy-controls">
                         <button class="quippy-settings-btn" id="quippy-settings">
-                            <img src="assets/settings.svg" width="20" height="20" alt="Settings">
+                            <img src="${settingsUrl}" width="20" height="20" alt="Settings">
                         </button>
                         <button class="quippy-close-btn" id="quippy-close">
-                            <img src="assets/close.svg" width="20" height="20" alt="Close">
+                            <img src="${closeUrl}" width="20" height="20" alt="Close">
                         </button>
                     </div>
                 </div>
@@ -55,7 +64,7 @@ class QuippyWidget {
                 <div class="quippy-content">
                     <div id="quippy-initial-state" class="quippy-state">
                         <div class="quippy-instruction">
-                            <img src="assets/selecttext.svg" width="40" height="40" alt="Select text" class="quippy-select-icon">
+                            <img src="${selectTextUrl}" width="40" height="40" alt="Select text" class="quippy-select-icon">
                             <p class="quippy-instruction-text">
                                 Select any text on the page and<br>
                                 Quippy will help you in just a minute :)
@@ -66,15 +75,15 @@ class QuippyWidget {
                             <p class="quippy-popular-title">Quippy's popular functions:</p>
                             <div class="quippy-function-chips">
                                 <button class="quippy-chip" data-function="timezone">
-                                    <img src="assets/time.svg" width="16" height="16" alt="" class="chip-icon">
+                                    <img src="${chrome.runtime.getURL('assets/time.svg')}" width="16" height="16" alt="" class="chip-icon">
                                     <span>Timezone</span>
                                 </button>
                                 <button class="quippy-chip" data-function="currency">
-                                    <img src="assets/currency.svg" width="16" height="16" alt="" class="chip-icon">
+                                    <img src="${chrome.runtime.getURL('assets/currency.svg')}" width="16" height="16" alt="" class="chip-icon">
                                     <span>Currency</span>
                                 </button>
                                 <button class="quippy-chip" data-function="meaning">
-                                    <img src="assets/meaning.svg" width="16" height="16" alt="" class="chip-icon">
+                                    <img src="${chrome.runtime.getURL('assets/meaning.svg')}" width="16" height="16" alt="" class="chip-icon">
                                     <span>Meaning</span>
                                 </button>
                             </div>
@@ -86,7 +95,7 @@ class QuippyWidget {
                             <span class="selected-label">Selected Text:</span>
                             <span class="selected-value" id="quippy-selected-text"></span>
                             <button class="quippy-reselect-btn" id="quippy-reselect">
-                                <img src="assets/refresh.svg" width="16" height="16" alt="">
+                                <img src="${refreshUrl}" width="16" height="16" alt="">
                                 Re-select
                             </button>
                         </div>
@@ -97,56 +106,72 @@ class QuippyWidget {
                             <div class="quippy-function-selector">
                                 <button class="quippy-dropdown-btn" id="quippy-function-dropdown">
                                     <span class="dropdown-icon" id="quippy-current-icon">
-                                        <img src="assets/weight.svg" width="24" height="24" alt="">
+                                        <img src="${chrome.runtime.getURL('assets/weight.svg')}" width="24" height="24" alt="">
                                     </span>
                                     <span class="dropdown-text" id="quippy-current-function">Weight</span>
-                                    <img src="assets/dropdown.svg" width="16" height="16" alt="" class="dropdown-arrow">
+                                    <img src="${dropdownUrl}" width="16" height="16" alt="" class="dropdown-arrow">
                                 </button>
                                 
                                 <div class="quippy-dropdown-menu quippy-hidden" id="quippy-dropdown-menu">
                                     <button class="quippy-dropdown-item" data-function="length" data-icon="length.svg">
-                                        <img src="assets/length.svg" width="18" height="18" alt="" class="item-icon">
+                                        <img src="${chrome.runtime.getURL('assets/length.svg')}" width="18" height="18" alt="" class="item-icon">
                                         <span>Length</span>
                                     </button>
                                     <button class="quippy-dropdown-item" data-function="weight" data-icon="weight.svg">
-                                        <img src="assets/weight.svg" width="18" height="18" alt="" class="item-icon">
+                                        <img src="${chrome.runtime.getURL('assets/weight.svg')}" width="18" height="18" alt="" class="item-icon">
                                         <span>Weight</span>
                                     </button>
+                                    <button class="quippy-dropdown-item" data-function="area" data-icon="area.svg">
+                                        <img src="${chrome.runtime.getURL('assets/area.svg')}" width="18" height="18" alt="" class="item-icon">
+                                        <span>Area</span>
+                                    </button>
+                                    <button class="quippy-dropdown-item" data-function="volume" data-icon="volume.svg">
+                                        <img src="${chrome.runtime.getURL('assets/volume.svg')}" width="18" height="18" alt="" class="item-icon">
+                                        <span>Volume</span>
+                                    </button>
                                     <button class="quippy-dropdown-item" data-function="timezone" data-icon="time.svg">
-                                        <img src="assets/time.svg" width="18" height="18" alt="" class="item-icon">
+                                        <img src="${chrome.runtime.getURL('assets/time.svg')}" width="18" height="18" alt="" class="item-icon">
                                         <span>Timezone</span>
                                     </button>
+                                    <button class="quippy-dropdown-item" data-function="duration" data-icon="duration.svg">
+                                        <img src="${chrome.runtime.getURL('assets/duration.svg')}" width="18" height="18" alt="" class="item-icon">
+                                        <span>Duration</span>
+                                    </button>
+                                    <button class="quippy-dropdown-item" data-function="temperature" data-icon="temperature.svg">
+                                        <img src="${chrome.runtime.getURL('assets/temperature.svg')}" width="18" height="18" alt="" class="item-icon">
+                                        <span>Temperature</span>
+                                    </button>
                                     <button class="quippy-dropdown-item" data-function="health" data-icon="health.svg">
-                                        <img src="assets/health.svg" width="18" height="18" alt="" class="item-icon">
+                                        <img src="${chrome.runtime.getURL('assets/health.svg')}" width="18" height="18" alt="" class="item-icon">
                                         <span>Health</span>
                                     </button>
                                     <button class="quippy-dropdown-item" data-function="digital" data-icon="digital.svg">
-                                        <img src="assets/digital.svg" width="18" height="18" alt="" class="item-icon">
+                                        <img src="${chrome.runtime.getURL('assets/digital.svg')}" width="18" height="18" alt="" class="item-icon">
                                         <span>Digital</span>
                                     </button>
                                     <button class="quippy-dropdown-item" data-function="calculate" data-icon="calculate.svg">
-                                        <img src="assets/calculate.svg" width="18" height="18" alt="" class="item-icon">
+                                        <img src="${chrome.runtime.getURL('assets/calculate.svg')}" width="18" height="18" alt="" class="item-icon">
                                         <span>Maths</span>
                                     </button>
                                     <button class="quippy-dropdown-item" data-function="design" data-icon="design.svg">
-                                        <img src="assets/design.svg" width="18" height="18" alt="" class="item-icon">
+                                        <img src="${chrome.runtime.getURL('assets/design.svg')}" width="18" height="18" alt="" class="item-icon">
                                         <span>Design</span>
                                     </button>
                                     <button class="quippy-dropdown-item" data-function="meaning" data-icon="meaning.svg">
-                                        <img src="assets/meaning.svg" width="18" height="18" alt="" class="item-icon">
+                                        <img src="${chrome.runtime.getURL('assets/meaning.svg')}" width="18" height="18" alt="" class="item-icon">
                                         <span>Meaning</span>
                                     </button>
                                     <button class="quippy-dropdown-item" data-function="currency" data-icon="currency.svg">
-                                        <img src="assets/currency.svg" width="18" height="18" alt="" class="item-icon">
+                                        <img src="${chrome.runtime.getURL('assets/currency.svg')}" width="18" height="18" alt="" class="item-icon">
                                         <span>Currency</span>
                                     </button>
                                 </div>
                             </div>
                             
                             <div class="quippy-input-area">
-                                <input type="text" class="quippy-input" id="quippy-input" placeholder="To Kg">
+                                <input type="text" class="quippy-input" id="quippy-input" placeholder="Kg">
                                 <button class="quippy-submit-btn" id="quippy-submit">
-                                    <img src="assets/search.svg" width="20" height="20" alt="Search">
+                                    <img src="${searchUrl}" width="20" height="20" alt="Search">
                                 </button>
                             </div>
                             
@@ -292,7 +317,8 @@ class QuippyWidget {
                 const selection = window.getSelection();
                 const text = selection.toString().trim();
                 
-                if (text && text.length > 0) {
+                // Only update if widget is already visible
+                if (text && text.length > 0 && this.isVisible) {
                     this.selectedText = text;
                     this.showWithText(text);
                 }
@@ -304,7 +330,18 @@ class QuippyWidget {
         if (this.isVisible) {
             this.close();
         } else {
-            this.open();
+            // Check if there's any text selected when opening
+            const selection = window.getSelection();
+            const text = selection.toString().trim();
+            
+            if (text && text.length > 0) {
+                // Open with the selected text
+                this.selectedText = text;
+                this.showWithText(text);
+            } else {
+                // Open in initial state
+                this.open();
+            }
         }
     }
 
@@ -393,11 +430,16 @@ class QuippyWidget {
         const currentFunction = document.getElementById('quippy-current-function');
         const dropdown = document.getElementById('quippy-dropdown-menu');
         const dropdownBtn = document.getElementById('quippy-function-dropdown');
+        const input = document.getElementById('quippy-input');
         
         // Function name mapping
         const functionNames = {
             'weight': 'Weight',
             'length': 'Length',
+            'area': 'Area',
+            'volume': 'Volume',
+            'duration': 'Duration',
+            'temperature': 'Temperature',
             'currency': 'Currency',
             'timezone': 'Timezone',
             'calculate': 'Maths',
@@ -407,11 +449,31 @@ class QuippyWidget {
             'design': 'Design'
         };
         
+        // Placeholder mapping based on function type
+        const placeholders = {
+            'weight': 'Kg',
+            'length': 'm',
+            'area': 'm²',
+            'volume': 'liters',
+            'duration': 'hours',
+            'temperature': '°C',
+            'currency': 'USD',
+            'timezone': 'PST',
+            'calculate': 'Calculate',
+            'meaning': 'define',
+            'health': 'Convert',
+            'digital': 'Convert',
+            'design': 'Convert'
+        };
+        
         if (currentIcon) {
-            currentIcon.innerHTML = `<img src="assets/${iconFile}" width="24" height="24" alt="">`;
+            currentIcon.innerHTML = `<img src="${chrome.runtime.getURL('assets/' + iconFile)}" width="24" height="24" alt="">`;
         }
         if (currentFunction) {
             currentFunction.textContent = functionNames[functionType] || functionType;
+        }
+        if (input) {
+            input.placeholder = placeholders[functionType] || 'Enter value';
         }
         if (dropdown) {
             dropdown.classList.add('quippy-hidden');
@@ -429,11 +491,19 @@ class QuippyWidget {
         this.clearInputAndResults();
     }
 
-    updateSuggestions(text, functionType) {
+    async updateSuggestions(text, functionType) {
         const functions = window.quippyFunctions;
         if (!functions) return;
         
-        const suggestions = functions.getSuggestions(text, functionType);
+        let suggestions;
+        
+        // For meaning type, use async version to check if examples exist
+        if (functionType === 'meaning') {
+            suggestions = await functions.getMeaningSuggestionsWithCheck(text);
+        } else {
+            suggestions = functions.getSuggestions(text, functionType);
+        }
+        
         const suggestionsList = document.getElementById('quippy-suggestions-list');
         const suggestionsContainer = document.getElementById('quippy-suggestions');
         
@@ -450,6 +520,7 @@ class QuippyWidget {
         const iconMapping = {
             '⚖️': 'weight.svg',
             '📏': 'length.svg',
+            '🌡️': 'temperature.svg',
             '💲': 'currency.svg',
             '💶': 'currency.svg',
             '💷': 'currency.svg',
@@ -461,14 +532,28 @@ class QuippyWidget {
             '🧮': 'calculate.svg',
             '📖': 'meaning.svg',
             '🔤': 'meaning.svg',
-            '💡': 'solution.svg'
+            '💡': 'solution.svg',
+            '📐': 'design.svg',
+            'weight.svg': 'weight.svg',
+            'length.svg': 'length.svg',
+            'duration.svg': 'duration.svg',
+            'temperature.svg': 'temperature.svg',
+            'currency.svg': 'currency.svg',
+            'time.svg': 'time.svg',
+            'calculate.svg': 'calculate.svg',
+            'meaning.svg': 'meaning.svg',
+            'solution.svg': 'solution.svg',
+            'design.svg': 'design.svg',
+            'area.svg': 'area.svg',
+            'volume.svg': 'volume.svg'
         };
         
         suggestionsList.innerHTML = suggestions.map(suggestion => {
             const iconFile = iconMapping[suggestion.icon] || 'solution.svg';
+            const iconUrl = chrome.runtime.getURL('assets/' + iconFile);
             return `
                 <button class="suggestion-chip" data-value="${suggestion.value}">
-                    <img src="assets/${iconFile}" width="14" height="14" alt="">
+                    <img src="${iconUrl}" width="14" height="14" alt="">
                     <span>${suggestion.label}</span>
                 </button>
             `;
@@ -502,9 +587,10 @@ class QuippyWidget {
     const resultsContent = document.getElementById('quippy-results-content');
     if (resultsContainer) resultsContainer.classList.remove('quippy-hidden');
     if (resultsContent) {
+        const loaderUrl = chrome.runtime.getURL('assets/loader.svg');
         resultsContent.innerHTML = `
             <div class="result-item loading">
-                <img src="assets/loader.svg" width="20" height="20" alt="" class="loading-spinner">
+                <img src="${loaderUrl}" width="20" height="20" alt="" class="loading-spinner">
                 <span>Give me a sec please</span>
             </div>
         `;
@@ -522,9 +608,10 @@ class QuippyWidget {
     } catch (error) {
         console.error('Submit error:', error);
         if (resultsContent) {
+            const errorUrl = chrome.runtime.getURL('assets/error.svg');
             resultsContent.innerHTML = `
                 <div class="result-item error">
-                    <img src="assets/error.svg" width="24" height="24" alt="" class="result-icon">
+                    <img src="${errorUrl}" width="24" height="24" alt="" class="result-icon">
                     <div class="result-content">
                         <div class="result-label">Oops, something went wrong.</div>
                     </div>
@@ -542,13 +629,16 @@ class QuippyWidget {
     
     resultsContainer.classList.remove('quippy-hidden');
     
-    // Check if it's an error
+    const errorUrl = chrome.runtime.getURL('assets/error.svg');
+    const solutionUrl = chrome.runtime.getURL('assets/quippysolution.svg');
+    
+    // Check if it's an error (safely handle empty labels)
     if (result.value === 'Invalid input' || result.value === 'Error' || 
         result.value === 'Calculation error' || result.value === 'Conversion failed' ||
-        result.label.includes('error') || result.label.includes('Error')) {
+        (result.label && (result.label.includes('error') || result.label.includes('Error')))) {
         resultsContent.innerHTML = `
             <div class="result-item error">
-                <img src="assets/error.svg" width="24" height="24" alt="" class="result-icon">
+                <img src="${errorUrl}" width="24" height="24" alt="" class="result-icon">
                 <div class="result-content">
                     <div class="result-label">Oops, something went wrong.</div>
                 </div>
@@ -561,7 +651,7 @@ class QuippyWidget {
     if (typeof result === 'string') {
         resultsContent.innerHTML = `
             <div class="result-item success">
-                <img src="assets/solution.svg" width="24" height="24" alt="" class="result-icon">
+                <img src="${solutionUrl}" width="24" height="24" alt="" class="result-icon">
                 <div class="result-content">
                     <div class="result-label">${result}</div>
                 </div>
@@ -570,7 +660,7 @@ class QuippyWidget {
     } else if (Array.isArray(result)) {
         resultsContent.innerHTML = result.map(item => `
             <div class="result-item success">
-                <img src="assets/solution.svg" width="24" height="24" alt="" class="result-icon">
+                <img src="${solutionUrl}" width="24" height="24" alt="" class="result-icon">
                 <div class="result-content">
                     <div class="result-value">${item.value}</div>
                     <div class="result-label">${item.label}</div>
@@ -579,12 +669,12 @@ class QuippyWidget {
         `).join('');
     } else {
         // Check if label contains HTML (for meaning definitions)
-        const hasHtmlLabel = result.label.includes('<div');
+        const hasHtmlLabel = result.label && result.label.includes('<div');
         
         if (hasHtmlLabel) {
             resultsContent.innerHTML = `
                 <div class="result-item success">
-                    <img src="assets/meaning.svg" width="24" height="24" alt="" class="result-icon">
+                    <img src="${solutionUrl}" width="24" height="24" alt="" class="result-icon">
                     <div class="result-content">
                         <div class="result-value">${result.value}</div>
                         ${result.label}
@@ -592,23 +682,13 @@ class QuippyWidget {
                 </div>
             `;
         } else {
-            // Get appropriate icon based on function type
-            const iconMap = {
-                'weight': 'weight.svg',
-                'length': 'length.svg',
-                'currency': 'currency.svg',
-                'timezone': 'time.svg',
-                'calculate': 'calculate.svg',
-                'meaning': 'meaning.svg'
-            };
-            const iconFile = iconMap[this.currentFunction] || 'solution.svg';
-            
+            // Always use quippysolution.svg for all success results
             resultsContent.innerHTML = `
                 <div class="result-item success">
-                    <img src="assets/${iconFile}" width="24" height="24" alt="" class="result-icon">
+                    <img src="${solutionUrl}" width="24" height="24" alt="" class="result-icon">
                     <div class="result-content">
                         <div class="result-value">${result.value}</div>
-                        <div class="result-label">${result.label}</div>
+                        <div class="result-label">${result.label || ''}</div>
                     </div>
                 </div>
             `;
