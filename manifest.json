@@ -13,7 +13,8 @@
     "https://en.wikipedia.org/*",
     "https://api.exchangerate-api.com/*",
     "https://worldtimeapi.org/*",
-    "https://api.datamuse.com/*"
+    "https://api.datamuse.com/*",
+    "https://api.mymemory.translated.net/*"
   ],
   
   "background": {

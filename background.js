@@ -289,35 +289,59 @@ async function fetchTranslation(text, targetLanguage) {
             return { success: false, error: 'Invalid target language provided' };
         }
 
+        // Detect source language based on character ranges
         const cleanText = text.trim();
-        const url = 'https://libretranslate.de/translate';
+        let sourceLanguage = 'en'; // Default to English
         
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                q: cleanText,
-                source: 'auto',
-                target: targetLanguage,
-                format: 'text'
-            })
-        });
+        // Detect common languages by character ranges
+        if (/[\u4e00-\u9fa5]/.test(cleanText)) {
+            sourceLanguage = 'zh-CN'; // Chinese
+        } else if (/[\u0600-\u06FF]/.test(cleanText)) {
+            sourceLanguage = 'ar'; // Arabic
+        } else if (/[\u0590-\u05FF]/.test(cleanText)) {
+            sourceLanguage = 'he'; // Hebrew
+        } else if (/[\u0400-\u04FF]/.test(cleanText)) {
+            sourceLanguage = 'ru'; // Russian
+        } else if (/[\u3040-\u309F\u30A0-\u30FF]/.test(cleanText)) {
+            sourceLanguage = 'ja'; // Japanese
+        } else if (/[\uAC00-\uD7AF]/.test(cleanText)) {
+            sourceLanguage = 'ko'; // Korean
+        } else if (/[\u0E00-\u0E7F]/.test(cleanText)) {
+            sourceLanguage = 'th'; // Thai
+        } else if (/[\u0900-\u097F]/.test(cleanText)) {
+            sourceLanguage = 'hi'; // Hindi
+        }
+        
+        const encodedText = encodeURIComponent(cleanText);
+        const langPair = `${sourceLanguage}|${targetLanguage}`;
+        const url = `https://api.mymemory.translated.net/get?q=${encodedText}&langpair=${langPair}`;
+        
+        console.log('🌐 Translating:', cleanText, 'from', sourceLanguage, 'to', targetLanguage);
+        
+        const response = await fetch(url);
+        
+        console.log('📥 Translation response status:', response.status);
         
         if (!response.ok) {
-            return { success: false, error: `Translation API error: ${response.status}` };
+            return { success: false, error: `API returned ${response.status}` };
         }
         
         const data = await response.json();
+        console.log('✅ Translation data:', data);
         
-        if (!data || !data.translatedText) {
+        if (!data || !data.responseData || !data.responseData.translatedText) {
             return { success: false, error: 'No translation returned' };
+        }
+        
+        // Check if translation actually worked
+        if (data.responseData.translatedText === cleanText) {
+            // Translation didn't change the text, might be wrong source language
+            return { success: false, error: 'Translation unavailable for this language pair' };
         }
         
         return {
             success: true,
-            translatedText: data.translatedText
+            translatedText: data.responseData.translatedText
         };
     } catch (error) {
         console.error('Translation API error:', error);

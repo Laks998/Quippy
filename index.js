@@ -137,7 +137,17 @@ class QuippyFunctions {
             return { type: 'timezone', icon: 'time.svg' };
         }
         
-        // Default to meaning for words
+        // Check if text contains non-English characters (for auto-translator detection)
+        const hasNonEnglish = /[^\x00-\x7F]/.test(cleanText);
+        const hasOnlyBasicEnglish = /^[a-zA-Z\s]+$/.test(cleanText);
+        
+        // If text contains non-English characters or is clearly non-English, suggest translator
+        if (hasNonEnglish || !hasOnlyBasicEnglish) {
+            console.log('✅ Detected as: translator (non-English text)');
+            return { type: 'translator', icon: 'translator.svg' };
+        }
+        
+        // Default to meaning for English words
         console.log('✅ Detected as: meaning (default)');
         return { type: 'meaning', icon: 'meaning.svg' };
     }
@@ -1655,27 +1665,85 @@ class QuippyFunctions {
         }
     }
 
+    // MINIMAL PATCH: Only update the translateText function in your original index.js
+// Replace ONLY this function (around line 1668)
+
     async translateText(text, targetLanguage) {
         try {
             const sourceText = text.trim();
-            console.log('🌐 Translating text:', sourceText, 'to', targetLanguage);
+            
+            // Map language names to ISO codes
+            const languageCodeMap = {
+                // English names to codes
+                'english': 'en',
+                'spanish': 'es',
+                'french': 'fr',
+                'german': 'de',
+                'japanese': 'ja',
+                'chinese': 'zh-CN',
+                'italian': 'it',
+                'portuguese': 'pt',
+                'russian': 'ru',
+                'arabic': 'ar',
+                'hindi': 'hi',
+                'korean': 'ko',
+                'dutch': 'nl',
+                'polish': 'pl',
+                'turkish': 'tr',
+                'vietnamese': 'vi',
+                'thai': 'th',
+                'swedish': 'sv',
+                'danish': 'da',
+                'finnish': 'fi',
+                'norwegian': 'no',
+                // Already ISO codes (keep as-is)
+                'en': 'en',
+                'es': 'es',
+                'fr': 'fr',
+                'de': 'de',
+                'ja': 'ja',
+                'zh': 'zh-CN',
+                'zh-cn': 'zh-CN',
+                'it': 'it',
+                'pt': 'pt',
+                'ru': 'ru',
+                'ar': 'ar',
+                'hi': 'hi',
+                'ko': 'ko',
+                'nl': 'nl',
+                'pl': 'pl',
+                'tr': 'tr',
+                'vi': 'vi',
+                'th': 'th',
+                'sv': 'sv',
+                'da': 'da',
+                'fi': 'fi',
+                'no': 'no'
+            };
+            
+            // Convert to lowercase and get the proper language code
+            const targetCode = languageCodeMap[targetLanguage.toLowerCase()] || targetLanguage;
+            
+            console.log('🌐 Translating text:', sourceText, 'to', targetCode);
             
             // Send message to background script to perform translation
             const response = await chrome.runtime.sendMessage({
                 action: 'translate-text',
                 text: sourceText,
-                targetLanguage: targetLanguage
+                targetLanguage: targetCode
             });
             
             console.log('📥 Translation response:', response);
             
             if (response && response.success) {
-                // Language name mapping
+                // Language name mapping for display
                 const languageNames = {
+                    'en': 'English',
                     'es': 'Spanish',
                     'fr': 'French',
                     'de': 'German',
                     'ja': 'Japanese',
+                    'zh-CN': 'Chinese',
                     'zh': 'Chinese',
                     'it': 'Italian',
                     'pt': 'Portuguese',
@@ -1694,7 +1762,7 @@ class QuippyFunctions {
                     'no': 'Norwegian'
                 };
                 
-                const langName = languageNames[targetLanguage] || targetLanguage.toUpperCase();
+                const langName = languageNames[targetCode] || targetCode.toUpperCase();
                 
                 return {
                     value: response.translatedText,
