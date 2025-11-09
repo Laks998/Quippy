@@ -18,7 +18,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         fetchWordMeaning(request.word)
             .then(data => sendResponse(data))
             .catch(error => {
-                sendResponse({ success: false, error: error.message || 'Unknown error' });
+                sendResponse({ success: false, error: "Sorry, we couldn't get you" });
             });
         return true;
     }
@@ -27,7 +27,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         fetchWikipedia(request.query)
             .then(data => sendResponse(data))
             .catch(error => {
-                sendResponse({ success: false, error: error.message || 'Unknown error' });
+                sendResponse({ success: false, error: "Sorry, we couldn't get you" });
             });
         return true;
     }
@@ -36,7 +36,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         fetchSynonyms(request.word)
             .then(data => sendResponse(data))
             .catch(error => {
-                sendResponse({ success: false, error: error.message || 'Unknown error' });
+                sendResponse({ success: false, error: "Sorry, we couldn't get you" });
             });
         return true;
     }
@@ -45,7 +45,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         fetchCurrencyRates(request.from, request.to, request.amount)
             .then(data => sendResponse(data))
             .catch(error => {
-                sendResponse({ success: false, error: error.message || 'Unknown error' });
+                sendResponse({ success: false, error: "Sorry, we couldn't get you" });
             });
         return true;
     }
@@ -54,7 +54,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         fetchTimezone(request.timezone)
             .then(data => sendResponse(data))
             .catch(error => {
-                sendResponse({ success: false, error: error.message || 'Unknown error' });
+                sendResponse({ success: false, error: "Sorry, we couldn't get you" });
             });
         return true;
     }
@@ -63,7 +63,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         fetchTranslation(request.text, request.targetLanguage)
             .then(data => sendResponse(data))
             .catch(error => {
-                sendResponse({ success: false, error: error.message || 'Unknown error' });
+                sendResponse({ success: false, error: "Sorry, we couldn't get you" });
             });
         return true;
     }
@@ -72,7 +72,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 async function fetchWordMeaning(word) {
     try {
         if (!word || typeof word !== 'string' || word.trim().length === 0) {
-            return { success: false, error: 'Invalid word provided' };
+            return { success: false, error: 'Please enter a valid word' };
         }
 
         const cleanWord = word.trim().toLowerCase();
@@ -84,13 +84,13 @@ async function fetchWordMeaning(word) {
             if (response.status === 404) {
                 return { success: false, error: 'Word not found in dictionary' };
             }
-            return { success: false, error: `API error: ${response.status}` };
+            return { success: false, error: "Sorry, we couldn't find that word" };
         }
         
         const data = await response.json();
         
         if (!data || !Array.isArray(data) || data.length === 0) {
-            return { success: false, error: 'No data returned from dictionary' };
+            return { success: false, error: "Sorry, we couldn't find that word" };
         }
         
         const entry = data[0];
@@ -122,15 +122,15 @@ async function fetchWordMeaning(word) {
             }
         };
     } catch (error) {
-        console.error('Dictionary API error:', error);
-        return { success: false, error: error.message || 'Failed to fetch word meaning' };
+        console.error('Dictionary error:', error);
+        return { success: false, error: "Sorry, we couldn't get you" };
     }
 }
 
 async function fetchWikipedia(query) {
     try {
         if (!query || typeof query !== 'string' || query.trim().length === 0) {
-            return { success: false, error: 'Invalid query provided' };
+            return { success: false, error: 'Please enter something to search' };
         }
 
         const cleanQuery = query.trim();
@@ -142,13 +142,13 @@ async function fetchWikipedia(query) {
             if (response.status === 404) {
                 return { success: false, error: 'Not found on Wikipedia' };
             }
-            return { success: false, error: `API error: ${response.status}` };
+            return { success: false, error: "Sorry, we couldn't find that" };
         }
         
         const data = await response.json();
         
         if (data.type === 'disambiguation' || data.type === 'no-extract') {
-            return { success: false, error: 'Disambiguation or no extract available' };
+            return { success: false, error: "Sorry, we couldn't find that" };
         }
         
         return {
@@ -162,15 +162,15 @@ async function fetchWikipedia(query) {
             }
         };
     } catch (error) {
-        console.error('Wikipedia API error:', error);
-        return { success: false, error: error.message || 'Failed to fetch from Wikipedia' };
+        console.error('Wikipedia error:', error);
+        return { success: false, error: "Sorry, we couldn't get you" };
     }
 }
 
 async function fetchSynonyms(word) {
     try {
         if (!word || typeof word !== 'string' || word.trim().length === 0) {
-            return { success: false, error: 'Invalid word provided' };
+            return { success: false, error: 'Please enter a valid word' };
         }
 
         const cleanWord = word.trim().toLowerCase();
@@ -179,7 +179,7 @@ async function fetchSynonyms(word) {
         const response = await fetch(url);
         
         if (!response.ok) {
-            return { success: false, error: `API error: ${response.status}` };
+            return { success: false, error: "Sorry, we couldn't find synonyms" };
         }
         
         const data = await response.json();
@@ -195,20 +195,20 @@ async function fetchSynonyms(word) {
             synonyms: synonyms
         };
     } catch (error) {
-        console.error('DataMuse API error:', error);
-        return { success: false, error: error.message || 'Failed to fetch synonyms' };
+        console.error('Synonyms error:', error);
+        return { success: false, error: "Sorry, we couldn't get you" };
     }
 }
 
 async function fetchCurrencyRates(from, to, amount) {
     try {
         if (!from || !to) {
-            return { success: false, error: 'Currency codes required' };
+            return { success: false, error: 'Please enter valid currencies' };
         }
         
         const numAmount = parseFloat(amount);
         if (isNaN(numAmount) || numAmount <= 0) {
-            return { success: false, error: 'Invalid amount' };
+            return { success: false, error: 'Please enter a valid amount' };
         }
 
         const url = `https://api.exchangerate-api.com/v4/latest/${from.toUpperCase()}`;
@@ -216,7 +216,7 @@ async function fetchCurrencyRates(from, to, amount) {
         const response = await fetch(url);
         
         if (!response.ok) {
-            return { success: false, error: `Could not fetch currency rates: ${response.status}` };
+            return { success: false, error: "Sorry, we couldn't convert that" };
         }
         
         const data = await response.json();
@@ -241,15 +241,15 @@ async function fetchCurrencyRates(from, to, amount) {
             }
         };
     } catch (error) {
-        console.error('Currency API error:', error);
-        return { success: false, error: error.message || 'Failed to fetch currency rates' };
+        console.error('Currency error:', error);
+        return { success: false, error: "Sorry, we couldn't convert that" };
     }
 }
 
 async function fetchTimezone(timezone) {
     try {
         if (!timezone || typeof timezone !== 'string') {
-            return { success: false, error: 'Invalid timezone provided' };
+            return { success: false, error: 'Please enter a valid timezone' };
         }
 
         const url = `https://worldtimeapi.org/api/timezone/${encodeURIComponent(timezone)}`;
@@ -260,7 +260,7 @@ async function fetchTimezone(timezone) {
             if (response.status === 404) {
                 return { success: false, error: 'Timezone not found' };
             }
-            return { success: false, error: `API error: ${response.status}` };
+            return { success: false, error: "Sorry, we couldn't get that timezone" };
         }
         
         const data = await response.json();
@@ -274,19 +274,19 @@ async function fetchTimezone(timezone) {
             }
         };
     } catch (error) {
-        console.error('Timezone API error:', error);
-        return { success: false, error: error.message || 'Failed to fetch timezone' };
+        console.error('Timezone error:', error);
+        return { success: false, error: "Sorry, we couldn't get you" };
     }
 }
 
 async function fetchTranslation(text, targetLanguage) {
     try {
         if (!text || typeof text !== 'string' || text.trim().length === 0) {
-            return { success: false, error: 'Invalid text provided' };
+            return { success: false, error: 'Please enter some text to translate' };
         }
 
         if (!targetLanguage || typeof targetLanguage !== 'string') {
-            return { success: false, error: 'Invalid target language provided' };
+            return { success: false, error: 'Please select a language' };
         }
 
         const cleanText = text.trim();
@@ -321,8 +321,8 @@ async function fetchTranslation(text, targetLanguage) {
         console.log('📥 Translation response status:', response.status);
         
         if (!response.ok) {
-            console.error('❌ Translation API error:', response.status, response.statusText);
-            return { success: false, error: `Translation API returned ${response.status}` };
+            console.error('❌ Translation error:', response.status, response.statusText);
+            return { success: false, error: "Sorry, we couldn't translate that" };
         }
         
         const data = await response.json();
@@ -331,7 +331,7 @@ async function fetchTranslation(text, targetLanguage) {
         // Google Translate API returns data in format: [[[translated_text, original_text, null, null, score], ...], ...]
         if (!data || !Array.isArray(data) || data.length === 0) {
             console.error('❌ Invalid translation response format');
-            return { success: false, error: 'Invalid translation response' };
+            return { success: false, error: "Sorry, we couldn't translate that" };
         }
         
         // Extract translated text from the response
@@ -347,14 +347,14 @@ async function fetchTranslation(text, targetLanguage) {
         
         if (!translatedText || translatedText.trim().length === 0) {
             console.error('❌ No translation text extracted');
-            return { success: false, error: 'No translation returned' };
+            return { success: false, error: "Sorry, we couldn't translate that" };
         }
         
         console.log('✅ Translation successful:', translatedText);
         
         // Check if translation actually changed the text
         if (translatedText.toLowerCase().trim() === cleanText.toLowerCase().trim()) {
-            return { success: false, error: 'Text is already in target language or translation unavailable' };
+            return { success: false, error: 'Text is already in that language' };
         }
         
         return {
@@ -367,7 +367,7 @@ async function fetchTranslation(text, targetLanguage) {
         console.error('Error stack:', error.stack);
         return { 
             success: false, 
-            error: error.message || 'Failed to translate text' 
+            error: "Sorry, we couldn't translate that"
         };
     }
 }

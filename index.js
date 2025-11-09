@@ -11,6 +11,8 @@ class QuippyFunctions {
             duration: /\b(\d+\.?\d*)\s*(hr|hrs|hour|hours|min|mins|minute|minutes|sec|secs|second|seconds|day|days|week|weeks|month|months|year|years|yr|yrs)\b/i,
             // Design units pattern - px, rem, em, pt, dp, sp, inches
             design: /\b(\d+\.?\d*)\s*(px|rem|em|pt|dp|sp|in|inch|inches|pixel|pixels|point|points)\b/i,
+            // Digital storage pattern - bytes, KB, MB, GB, TB, PB and binary equivalents + network speed (bps, Kbps, Mbps, Gbps, Tbps)
+            digital: /\b(\d+\.?\d*)\s*(b|byte|bytes|kb|kilobyte|kilobytes|mb|megabyte|megabytes|gb|gigabyte|gigabytes|tb|terabyte|terabytes|pb|petabyte|petabytes|kib|mib|gib|tib|pib|bps|kbps|mbps|gbps|tbps|kilobits per second|megabits per second|gigabits per second|terabits per second|bits per second)\b/i,
             // Area calculation pattern - detects "5m x 6m", "12ft by 10ft", etc. BEFORE area pattern
             areaCalc: /\b(\d+\.?\d*)\s*(m|cm|mm|km|ft|feet|foot|inch|inches|in|mile|miles|yard|yards|yd|meter|meters)\s*(?:x|×|by)\s*(\d+\.?\d*)\s*(m|cm|mm|km|ft|feet|foot|inch|inches|in|mile|miles|yard|yards|yd|meter|meters)\b/i,
             // Area pattern - square meters, square feet, acres, hectares, etc. (no trailing \b for Unicode ²)
@@ -20,20 +22,34 @@ class QuippyFunctions {
             // Temperature pattern - requires degree symbol with C/F/K or full word to avoid conflicts
             temperature: /\b(-?\d+\.?\d*)\s*(°\s*[CcFfKk]|celsius|fahrenheit|kelvin)\b/i,
             // Currency pattern now requires EITHER a symbol OR a currency name
-            currency: /(?:(\$|€|£|¥|₹)\s*(\d+\.?\d*))|(?:(\d+\.?\d*)\s+(usd|eur|gbp|jpy|inr|cad|aud|dollar|dollars|euro|euros|pound|pounds|yen|rupee|rupees))/i,
+            currency: /(?:(\$|€|£|¥|₹)\s*([\d,]+\.?\d*))|(?:([\d,]+\.?\d*)\s+([A-Z]{3}|dollar|dollars|euro|euros|pound|pounds|yen|rupee|rupees))|(?:([A-Z]{3})\s+([\d,]+\.?\d*))/i,
             // FIXED: Now captures optional minutes and timezone abbreviation OR country name
-            timezone: /\b(\d{1,2})(?::(\d{2}))?\s*(am|pm|AM|PM)?\s*(?:(ist|pst|est|cst|mst|utc|gmt|edt|cdt|mdt|pdt|jst|aest|bst|cet|cest)|(?:in\s+)?(india|japan|china|uk|usa|america|australia|germany|france|canada|brazil|russia|korea|singapore|dubai|uae|italy|spain|mexico|thailand|vietnam|indonesia|philippines|malaysia|pakistan|egypt|turkey|argentina|south africa|new zealand|sweden|norway|denmark|finland|netherlands|belgium|switzerland|austria|ireland|portugal|poland|greece))/i,
-            number: /\b\d+\.?\d*\b/,
+            timezone: /\b(\d{1,2})(?::(\d{2}))?\s*(am|pm|AM|PM)?\s*(?:(ist|pst|est|cst|mst|utc|gmt|edt|cdt|mdt|pdt|jst|aest|bst|cet|cest)|(?:in\s+)?(india|japan|china|uk|usa|america|australia|germany|france|canada|brazil|russia|korea|singapore|dubai|uae|italy|spain|mexico|thailand|vietnam|indonesia|philippines|malaysia|pakistan|egypt|turkey|argentina|south africa|new zealand|sweden|norway|denmark|finland|netherlands|belgium|switzerland|austria|ireland|portugal|poland|greece|toronto|vancouver|montreal|new york|los angeles|chicago|san francisco|miami|boston|seattle|dallas|houston|atlanta|denver|phoenix|philadelphia|london|paris|berlin|tokyo|sydney|melbourne|mumbai|delhi|bangalore|shanghai|beijing|hong kong|dubai|singapore|moscow|madrid|barcelona|rome|milan|amsterdam|brussels|zurich|vienna|stockholm|copenhagen|oslo|helsinki|lisbon|warsaw|prague|budapest|athens|istanbul|cairo|cape town|johannesburg|nairobi|lagos|buenos aires|rio de janeiro|sao paulo|mexico city|lima|santiago|bogota|bangkok|jakarta|manila|kuala lumpur|hanoi|ho chi minh|karachi|lahore|dhaka|tehran|riyadh|tel aviv|auckland|wellington))/i,
             // Calculation pattern - after normalization, only basic operators remain
             calculation: /^[\d\s\+\-\*\/\(\)\.]+$/
         };
     }
-
+    
     detectFunction(text) {
         let cleanText = text.trim();
         console.log('🔍 detectFunction called with:', JSON.stringify(text));
         console.log('🔍 cleanText:', JSON.stringify(cleanText));
         console.log('🔍 Has √ symbol:', cleanText.includes('√'));
+        
+        const isPlainEnglishWord = /^[a-zA-Z\s]+$/.test(cleanText);
+        const hasNumbers = /\d/.test(cleanText);
+
+        if (isPlainEnglishWord && !hasNumbers) {
+            // Check if it contains non-English characters for translator
+            const hasNonEnglish = /[^\x00-\x7F]/.test(cleanText);
+            if (hasNonEnglish) {
+                console.log('✅ Detected as: translator (non-English letters)');
+                return { type: 'translator', icon: 'translator.svg' };
+            }
+            // Plain English word - default to meaning
+            console.log('✅ Detected as: meaning (plain English word)');
+            return { type: 'meaning', icon: 'meaning.svg' };
+        }
         
         // Normalize dashes and multiplication symbols for better detection
         cleanText = cleanText.replace(/[–—]/g, '-');  // en-dash, em-dash → minus
@@ -81,12 +97,12 @@ class QuippyFunctions {
         
         // Check for calculations - detects +, -, *, /, x, X, ×, ÷, ^, **, √, ∛
         const hasMathOperator = /[\+\-\*\/xX÷\^√∛]/.test(cleanText);
-        const hasNumbers = /\d/.test(cleanText);
+        const hasNumbersForCalc = /\d/.test(cleanText);  // ✅ RENAMED to avoid duplicate
         const isValidCalcFormat = /^[\d\s\+\-\*\/xX÷\^√∛\(\)\.]+$/.test(cleanText);
         
-        console.log('🔍 Math checks:', { hasMathOperator, hasNumbers, isValidCalcFormat });
+        console.log('🔍 Math checks:', { hasMathOperator, hasNumbersForCalc, isValidCalcFormat });
         
-        if (hasMathOperator && hasNumbers && isValidCalcFormat) {
+        if (hasMathOperator && hasNumbersForCalc && isValidCalcFormat) {
             console.log('✅ Detected as: math calculation');
             return { type: 'calculate', icon: 'calculate.svg' };
         }
@@ -125,6 +141,12 @@ class QuippyFunctions {
             return { type: 'design', icon: 'design.svg' };
         }
         
+        // Check for digital storage units (B, KB, MB, GB, TB, PB, KiB, MiB, GiB, etc.) and network speed (bps, Kbps, Mbps, Gbps, Tbps)
+        if (this.patterns.digital.test(cleanText)) {
+            console.log('✅ Detected as: digital storage/speed');
+            return { type: 'digital', icon: 'digital.svg' };
+        }
+        
         // Check for currency
         if (this.patterns.currency.test(cleanText)) {
             return { type: 'currency', icon: 'currency.svg' };
@@ -139,10 +161,8 @@ class QuippyFunctions {
         
         // Check if text contains non-English characters (for auto-translator detection)
         const hasNonEnglish = /[^\x00-\x7F]/.test(cleanText);
-        const hasOnlyBasicEnglish = /^[a-zA-Z\s]+$/.test(cleanText);
         
-        // If text contains non-English characters or is clearly non-English, suggest translator
-        if (hasNonEnglish || !hasOnlyBasicEnglish) {
+        if (hasNonEnglish) {
             console.log('✅ Detected as: translator (non-English text)');
             return { type: 'translator', icon: 'translator.svg' };
         }
@@ -162,6 +182,8 @@ class QuippyFunctions {
                 return this.getDurationSuggestions(text);
             case 'design':
                 return this.getDesignSuggestions(text);
+            case 'digital':
+                return this.getDigitalSuggestions(text);
             case 'area':
                 return this.getAreaSuggestions(text);
             case 'volume':
@@ -296,6 +318,69 @@ class QuippyFunctions {
         // Physical units
         if (!['in', 'inch'].includes(normalizedUnit)) {
             suggestions.push({ label: 'inches', value: 'in', icon: '📐' });
+        }
+
+        return suggestions;
+    }
+
+    getDigitalSuggestions(text) {
+        const match = text.match(this.patterns.digital);
+        if (!match) return [];
+
+        const unit = match[2].toLowerCase();
+        const suggestions = [];
+
+        // Check if it's a speed unit BEFORE normalizing (important!)
+        const isSpeedUnit = unit.includes('bps') || unit.includes('bits per second');
+        
+        if (isSpeedUnit) {
+            // Network speed suggestions
+            if (unit !== 'bps') {
+                suggestions.push({ label: 'bps', value: 'bps', icon: '💾' });
+            }
+            if (unit !== 'kbps') {
+                suggestions.push({ label: 'Kbps', value: 'Kbps', icon: '💾' });
+            }
+            if (unit !== 'mbps') {
+                suggestions.push({ label: 'Mbps', value: 'Mbps', icon: '💾' });
+            }
+            if (unit !== 'gbps') {
+                suggestions.push({ label: 'Gbps', value: 'Gbps', icon: '💾' });
+            }
+            if (unit !== 'tbps') {
+                suggestions.push({ label: 'Tbps', value: 'Tbps', icon: '💾' });
+            }
+        } else {
+            // Storage unit suggestions (bytes)
+            // Normalize unit names for storage
+            const normalizedUnit = unit.replace(/s$/, '').replace(/\s+/g, '');
+            
+            if (!['b', 'byte'].includes(normalizedUnit)) {
+                suggestions.push({ label: 'B', value: 'B', icon: '💾' });
+            }
+            if (!['kb', 'kilobyte'].includes(normalizedUnit)) {
+                suggestions.push({ label: 'KB', value: 'KB', icon: '💾' });
+            }
+            if (!['mb', 'megabyte'].includes(normalizedUnit)) {
+                suggestions.push({ label: 'MB', value: 'MB', icon: '💾' });
+            }
+            if (!['gb', 'gigabyte'].includes(normalizedUnit)) {
+                suggestions.push({ label: 'GB', value: 'GB', icon: '💾' });
+            }
+            if (!['tb', 'terabyte'].includes(normalizedUnit)) {
+                suggestions.push({ label: 'TB', value: 'TB', icon: '💾' });
+            }
+            
+            // Binary units (IEC standard)
+            if (!['kib'].includes(normalizedUnit)) {
+                suggestions.push({ label: 'KiB', value: 'KiB', icon: '💾' });
+            }
+            if (!['mib'].includes(normalizedUnit)) {
+                suggestions.push({ label: 'MiB', value: 'MiB', icon: '💾' });
+            }
+            if (!['gib'].includes(normalizedUnit)) {
+                suggestions.push({ label: 'GiB', value: 'GiB', icon: '💾' });
+            }
         }
 
         return suggestions;
@@ -509,6 +594,8 @@ class QuippyFunctions {
                 return this.convertDuration(text, target);
             case 'design':
                 return this.convertDesign(text, target);
+            case 'digital':
+                return this.convertDigital(text, target);
             case 'area':
                 return this.convertArea(text, target);
             case 'volume':
@@ -744,6 +831,135 @@ class QuippyFunctions {
         return {
             value: `${result.toFixed(precision)} ${toUnitDisplay}`,
             label: `Converted from ${value}${fromUnitDisplay}${labelContext}`
+        };
+    }
+
+    convertDigital(text, target) {
+        const match = text.match(this.patterns.digital);
+        if (!match) {
+            return { value: 'Invalid digital storage/speed format', label: '' };
+        }
+
+        const value = parseFloat(match[1]);
+        let fromUnit = match[2].toLowerCase();
+        let toUnit = target.toLowerCase();
+
+        // Check if units are speed BEFORE normalizing
+        const isFromSpeed = fromUnit.includes('bps') || fromUnit.includes('bits per second');
+        const isToSpeed = toUnit.includes('bps') || toUnit.includes('bits per second');
+
+        // Normalize unit names (remove spaces for "bits per second" variants)
+        fromUnit = fromUnit.replace(/\s+/g, '');
+        toUnit = toUnit.replace(/\s+/g, '');
+        
+        // Normalize storage unit names (remove plural 's' only for non-speed units)
+        if (!isFromSpeed) {
+            fromUnit = fromUnit.replace(/s$/, '');
+            if (fromUnit === 'byte') fromUnit = 'b';
+            if (fromUnit === 'kilobyte') fromUnit = 'kb';
+            if (fromUnit === 'megabyte') fromUnit = 'mb';
+            if (fromUnit === 'gigabyte') fromUnit = 'gb';
+            if (fromUnit === 'terabyte') fromUnit = 'tb';
+            if (fromUnit === 'petabyte') fromUnit = 'pb';
+        } else {
+            // Normalize speed unit names
+            if (fromUnit === 'bitspersecond') fromUnit = 'bps';
+            if (fromUnit === 'kilobitspersecond') fromUnit = 'kbps';
+            if (fromUnit === 'megabitspersecond') fromUnit = 'mbps';
+            if (fromUnit === 'gigabitspersecond') fromUnit = 'gbps';
+            if (fromUnit === 'terabitspersecond') fromUnit = 'tbps';
+        }
+        
+        if (!isToSpeed) {
+            toUnit = toUnit.replace(/s$/, '');
+            if (toUnit === 'byte') toUnit = 'b';
+            if (toUnit === 'kilobyte') toUnit = 'kb';
+            if (toUnit === 'megabyte') toUnit = 'mb';
+            if (toUnit === 'gigabyte') toUnit = 'gb';
+            if (toUnit === 'terabyte') toUnit = 'tb';
+            if (toUnit === 'petabyte') toUnit = 'pb';
+        } else {
+            // Normalize speed unit names
+            if (toUnit === 'bitspersecond') toUnit = 'bps';
+            if (toUnit === 'kilobitspersecond') toUnit = 'kbps';
+            if (toUnit === 'megabitspersecond') toUnit = 'mbps';
+            if (toUnit === 'gigabitspersecond') toUnit = 'gbps';
+            if (toUnit === 'terabitspersecond') toUnit = 'tbps';
+        }
+
+        // Conversion table to BYTES (using decimal/SI standard: 1 KB = 1000 B)
+        const toBytes = {
+            'b': 1,
+            'kb': 1000,
+            'mb': 1000000,
+            'gb': 1000000000,
+            'tb': 1000000000000,
+            'pb': 1000000000000000,
+            // Binary units (IEC standard: 1 KiB = 1024 B)
+            'kib': 1024,
+            'mib': 1048576,
+            'gib': 1073741824,
+            'tib': 1099511627776,
+            'pib': 1125899906842624
+        };
+
+        // Conversion table to BITS PER SECOND (using decimal/SI standard: 1 Kbps = 1000 bps)
+        const toBitsPerSecond = {
+            'bps': 1,
+            'kbps': 1000,
+            'mbps': 1000000,
+            'gbps': 1000000000,
+            'tbps': 1000000000000
+        };
+
+        let result;
+        let fromUnitDisplay;
+        let toUnitDisplay;
+
+        // Case 1: Both are storage units (bytes)
+        if (!isFromSpeed && !isToSpeed) {
+            const fromMultiplier = toBytes[fromUnit];
+            const toMultiplier = toBytes[toUnit];
+
+            if (!fromMultiplier || !toMultiplier) {
+                return { value: 'Unsupported storage unit', label: '' };
+            }
+
+            const valueInBytes = value * fromMultiplier;
+            result = valueInBytes / toMultiplier;
+            fromUnitDisplay = fromUnit.toUpperCase();
+            toUnitDisplay = toUnit.toUpperCase();
+        }
+        // Case 2: Both are speed units (bits per second)
+        else if (isFromSpeed && isToSpeed) {
+            const fromMultiplier = toBitsPerSecond[fromUnit];
+            const toMultiplier = toBitsPerSecond[toUnit];
+
+            if (!fromMultiplier || !toMultiplier) {
+                return { value: 'Unsupported speed unit', label: '' };
+            }
+
+            const valueInBps = value * fromMultiplier;
+            result = valueInBps / toMultiplier;
+            
+            // Proper display formatting for speed units
+            fromUnitDisplay = fromUnit === 'bps' ? 'bps' : fromUnit.charAt(0).toUpperCase() + fromUnit.slice(1);
+            toUnitDisplay = toUnit === 'bps' ? 'bps' : toUnit.charAt(0).toUpperCase() + toUnit.slice(1);
+        }
+        // Case 3: Converting between storage and speed (e.g., MB to Mbps or Mbps to MB)
+        else {
+            return {
+                value: 'Cannot convert between storage and speed',
+                label: 'Storage (bytes) and speed (bits/sec) are different types of units'
+            };
+        }
+
+        // Format the output nicely
+        const precision = result % 1 === 0 ? 0 : 2; // No decimals for whole numbers
+
+        return {
+            value: `${result.toFixed(precision)} ${toUnitDisplay}`,
+            label: `Converted from ${value} ${fromUnitDisplay}`
         };
     }
 
@@ -1033,7 +1249,7 @@ class QuippyFunctions {
         };
     }
 
-    async convertCurrency(text, target) {
+        async convertCurrency(text, target) {
         try {
             const match = text.match(this.patterns.currency);
             if (!match) {
@@ -1042,14 +1258,15 @@ class QuippyFunctions {
 
             let amount, fromCurrency;
 
+            // Pattern 1: Symbol format ($100, €50)
             if (match[1] && match[2]) {
-                // Symbol format: $100
                 const symbols = { '$': 'USD', '€': 'EUR', '£': 'GBP', '¥': 'JPY', '₹': 'INR' };
                 fromCurrency = symbols[match[1]];
-                amount = parseFloat(match[2]);
-            } else {
-                // Text format: 100 USD
-                amount = parseFloat(match[3]);
+                amount = parseFloat(match[2].replace(/,/g, '')); // Remove commas!
+            } 
+            // Pattern 2: Number + Currency (100 USD, 130 AED)
+            else if (match[3] && match[4]) {
+                amount = parseFloat(match[3].replace(/,/g, '')); // Remove commas!
                 const currencyText = match[4].toLowerCase();
                 const currencyMap = {
                     'usd': 'USD', 'dollar': 'USD', 'dollars': 'USD',
@@ -1061,6 +1278,13 @@ class QuippyFunctions {
                     'aud': 'AUD'
                 };
                 fromCurrency = currencyMap[currencyText] || currencyText.toUpperCase();
+            }
+            // Pattern 3: Currency + Number (USD 120, AED 130) - NEW!
+            else if (match[5] && match[6]) {
+                fromCurrency = match[5].toUpperCase();
+                amount = parseFloat(match[6].replace(/,/g, '')); // Remove commas!
+            } else {
+                return { value: 'Invalid currency format', label: '' };
             }
 
             const toCurrency = target.toUpperCase();
@@ -1093,154 +1317,137 @@ class QuippyFunctions {
     }
 
     convertTimezone(text, target) {
-        const match = text.match(this.patterns.timezone);
-        if (!match) {
-            return { value: 'Invalid time format', label: '' };
-        }
-
-        let hours = parseInt(match[1]);
-        const minutes = match[2] ? parseInt(match[2]) : 0;
-        const period = match[3] ? match[3].toUpperCase() : null;
-        const fromTzCode = match[4] ? match[4].toUpperCase() : null;
-        const fromCountry = match[5] ? match[5].toLowerCase() : null;
-
-        // Convert to 24-hour format if AM/PM is specified
-        if (period) {
-            if (period === 'PM' && hours !== 12) hours += 12;
-            if (period === 'AM' && hours === 12) hours = 0;
-        }
-
-        // Country to timezone mapping (UTC offsets in MINUTES)
-        const countryTimezones = {
-            'india': 5 * 60 + 30,           // UTC+5:30
-            'japan': 9 * 60,                 // UTC+9 (JST)
-            'china': 8 * 60,                 // UTC+8 (CST)
-            'uk': 0,                         // UTC+0 (GMT/BST) - using GMT as default
-            'usa': -5 * 60,                  // UTC-5 (EST) - default to Eastern
-            'america': -5 * 60,              // UTC-5 (EST)
-            'australia': 10 * 60,            // UTC+10 (AEST) - default to Sydney
-            'germany': 1 * 60,               // UTC+1 (CET)
-            'france': 1 * 60,                // UTC+1 (CET)
-            'canada': -5 * 60,               // UTC-5 (EST) - default to Eastern
-            'brazil': -3 * 60,               // UTC-3 (BRT) - default to Brasília
-            'russia': 3 * 60,                // UTC+3 (MSK) - default to Moscow
-            'korea': 9 * 60,                 // UTC+9 (KST)
-            'singapore': 8 * 60,             // UTC+8 (SGT)
-            'dubai': 4 * 60,                 // UTC+4 (GST)
-            'uae': 4 * 60,                   // UTC+4 (GST)
-            'italy': 1 * 60,                 // UTC+1 (CET)
-            'spain': 1 * 60,                 // UTC+1 (CET)
-            'mexico': -6 * 60,               // UTC-6 (CST)
-            'thailand': 7 * 60,              // UTC+7 (ICT)
-            'vietnam': 7 * 60,               // UTC+7 (ICT)
-            'indonesia': 7 * 60,             // UTC+7 (WIB) - default to Jakarta
-            'philippines': 8 * 60,           // UTC+8 (PHT)
-            'malaysia': 8 * 60,              // UTC+8 (MYT)
-            'pakistan': 5 * 60,              // UTC+5 (PKT)
-            'egypt': 2 * 60,                 // UTC+2 (EET)
-            'turkey': 3 * 60,                // UTC+3 (TRT)
-            'argentina': -3 * 60,            // UTC-3 (ART)
-            'south africa': 2 * 60,          // UTC+2 (SAST)
-            'new zealand': 12 * 60,          // UTC+12 (NZST)
-            'sweden': 1 * 60,                // UTC+1 (CET)
-            'norway': 1 * 60,                // UTC+1 (CET)
-            'denmark': 1 * 60,               // UTC+1 (CET)
-            'finland': 2 * 60,               // UTC+2 (EET)
-            'netherlands': 1 * 60,           // UTC+1 (CET)
-            'belgium': 1 * 60,               // UTC+1 (CET)
-            'switzerland': 1 * 60,           // UTC+1 (CET)
-            'austria': 1 * 60,               // UTC+1 (CET)
-            'ireland': 0,                    // UTC+0 (GMT/IST)
-            'portugal': 0,                   // UTC+0 (WET)
-            'poland': 1 * 60,                // UTC+1 (CET)
-            'greece': 2 * 60                 // UTC+2 (EET)
-        };
-
-        // UTC offsets in MINUTES (not hours!) to properly handle half-hour zones
-        const tzOffsets = {
-            'UTC': 0, 'GMT': 0,
-            'EST': -5 * 60, 'EDT': -4 * 60,
-            'CST': -6 * 60, 'CDT': -5 * 60,
-            'MST': -7 * 60, 'MDT': -6 * 60,
-            'PST': -8 * 60, 'PDT': -7 * 60,
-            'IST': 5 * 60 + 30,  // UTC+5:30
-            'JST': 9 * 60,
-            'AEST': 10 * 60,
-            'BST': 1 * 60,
-            'CET': 1 * 60, 'CEST': 2 * 60,
-            'LOCAL': -(new Date().getTimezoneOffset())
-        };
-
-        // Determine the source timezone (from match[4] or match[5])
-        let fromTz;
-        let fromLabel;
-        if (fromCountry) {
-            fromTz = fromCountry;
-            fromLabel = fromCountry.charAt(0).toUpperCase() + fromCountry.slice(1);
-        } else if (fromTzCode) {
-            fromTz = fromTzCode;
-            fromLabel = fromTzCode;
-        } else {
-            fromTz = 'LOCAL';
-            fromLabel = 'LOCAL';
-        }
-
-        // Get the offset for the source timezone
-        const fromOffset = countryTimezones[fromTz.toLowerCase()] || tzOffsets[fromTz] || 0;
-        
-        // Determine the target timezone
-        const targetLower = target.toLowerCase();
-        const toOffset = countryTimezones[targetLower] || tzOffsets[target.toUpperCase()] || 0;
-        
-        const diffMinutes = toOffset - fromOffset;
-
-        // Convert everything to minutes for calculation
-        let totalMinutes = (hours * 60) + minutes + diffMinutes;
-
-        // Handle day overflow/underflow
-        let dayOffset = 0;
-        while (totalMinutes >= 24 * 60) {
-            totalMinutes -= 24 * 60;
-            dayOffset++;
-        }
-        while (totalMinutes < 0) {
-            totalMinutes += 24 * 60;
-            dayOffset--;
-        }
-
-        // Convert back to hours and minutes
-        let newHours = Math.floor(totalMinutes / 60);
-        let newMinutes = totalMinutes % 60;
-
-        // Convert to 12-hour format with AM/PM
-        let displayHours = newHours;
-        let ampm = 'AM';
-        
-        if (newHours >= 12) {
-            ampm = 'PM';
-            if (newHours > 12) {
-                displayHours = newHours - 12;
-            }
-        }
-        if (newHours === 0) {
-            displayHours = 12;
-        }
-
-        const formattedTime = `${displayHours}:${newMinutes.toString().padStart(2, '0')} ${ampm}`;
-        
-        // Create a friendly label
-        const targetLabel = target.charAt(0).toUpperCase() + target.slice(1);
-        let label = `Converted from ${fromLabel}`;
-        if (dayOffset !== 0) {
-            const dayText = dayOffset > 0 ? 'next day' : 'previous day';
-            label += ` (${dayText})`;
-        }
-
-        return {
-            value: `${formattedTime} (${targetLabel})`,
-            label: label
-        };
+    const match = text.match(this.patterns.timezone);
+    if (!match) {
+        return { value: 'Invalid time format', label: '' };
     }
+
+    let hours = parseInt(match[1]);
+    const minutes = match[2] ? parseInt(match[2]) : 0;
+    const period = match[3] ? match[3].toUpperCase() : null;
+    const fromTzCode = match[4] ? match[4].toUpperCase() : null;
+    const fromCountry = match[5] ? match[5].toLowerCase() : null;
+
+    if (period) {
+        if (period === 'PM' && hours !== 12) hours += 12;
+        if (period === 'AM' && hours === 12) hours = 0;
+    }
+
+    const cityTimezones = {
+        'toronto': -5 * 60, 'vancouver': -8 * 60, 'montreal': -5 * 60,
+        'new york': -5 * 60, 'los angeles': -8 * 60, 'chicago': -6 * 60,
+        'san francisco': -8 * 60, 'miami': -5 * 60, 'boston': -5 * 60,
+        'seattle': -8 * 60, 'dallas': -6 * 60, 'houston': -6 * 60,
+        'atlanta': -5 * 60, 'denver': -7 * 60, 'phoenix': -7 * 60,
+        'philadelphia': -5 * 60, 'london': 0, 'paris': 1 * 60,
+        'berlin': 1 * 60, 'madrid': 1 * 60, 'barcelona': 1 * 60,
+        'rome': 1 * 60, 'milan': 1 * 60, 'amsterdam': 1 * 60,
+        'brussels': 1 * 60, 'zurich': 1 * 60, 'vienna': 1 * 60,
+        'stockholm': 1 * 60, 'copenhagen': 1 * 60, 'oslo': 1 * 60,
+        'helsinki': 2 * 60, 'lisbon': 0, 'warsaw': 1 * 60,
+        'prague': 1 * 60, 'budapest': 1 * 60, 'athens': 2 * 60,
+        'istanbul': 3 * 60, 'moscow': 3 * 60, 'tokyo': 9 * 60,
+        'mumbai': 5 * 60 + 30, 'delhi': 5 * 60 + 30, 'bangalore': 5 * 60 + 30,
+        'shanghai': 8 * 60, 'beijing': 8 * 60, 'hong kong': 8 * 60,
+        'singapore': 8 * 60, 'bangkok': 7 * 60, 'jakarta': 7 * 60,
+        'manila': 8 * 60, 'kuala lumpur': 8 * 60, 'hanoi': 7 * 60,
+        'ho chi minh': 7 * 60, 'karachi': 5 * 60, 'lahore': 5 * 60,
+        'dhaka': 6 * 60, 'tehran': 3 * 60 + 30, 'riyadh': 3 * 60,
+        'tel aviv': 2 * 60, 'sydney': 10 * 60, 'melbourne': 10 * 60,
+        'auckland': 12 * 60, 'wellington': 12 * 60, 'cairo': 2 * 60,
+        'cape town': 2 * 60, 'johannesburg': 2 * 60, 'nairobi': 3 * 60,
+        'lagos': 1 * 60, 'buenos aires': -3 * 60, 'rio de janeiro': -3 * 60,
+        'sao paulo': -3 * 60, 'mexico city': -6 * 60, 'lima': -5 * 60,
+        'santiago': -3 * 60, 'bogota': -5 * 60, 'dubai': 4 * 60
+    };
+
+    const countryTimezones = {
+        'india': 5 * 60 + 30, 'japan': 9 * 60, 'china': 8 * 60,
+        'uk': 0, 'usa': -5 * 60, 'america': -5 * 60,
+        'australia': 10 * 60, 'germany': 1 * 60, 'france': 1 * 60,
+        'canada': -5 * 60, 'brazil': -3 * 60, 'russia': 3 * 60,
+        'korea': 9 * 60, 'singapore': 8 * 60, 'uae': 4 * 60,
+        'italy': 1 * 60, 'spain': 1 * 60, 'mexico': -6 * 60,
+        'thailand': 7 * 60, 'vietnam': 7 * 60, 'indonesia': 7 * 60,
+        'philippines': 8 * 60, 'malaysia': 8 * 60, 'pakistan': 5 * 60,
+        'egypt': 2 * 60, 'turkey': 3 * 60, 'argentina': -3 * 60,
+        'south africa': 2 * 60, 'new zealand': 12 * 60, 'sweden': 1 * 60,
+        'norway': 1 * 60, 'denmark': 1 * 60, 'finland': 2 * 60,
+        'netherlands': 1 * 60, 'belgium': 1 * 60, 'switzerland': 1 * 60,
+        'austria': 1 * 60, 'ireland': 0, 'portugal': 0,
+        'poland': 1 * 60, 'greece': 2 * 60
+    };
+
+    const allTimezones = { ...cityTimezones, ...countryTimezones };
+    
+    let fromTz, fromLabel;
+    if (fromCountry) {
+        fromTz = fromCountry;
+        fromLabel = fromCountry.split(' ').map(word => 
+            word.charAt(0).toUpperCase() + word.slice(1)
+        ).join(' ');
+    } else if (fromTzCode) {
+        fromTz = fromTzCode;
+        fromLabel = fromTzCode;
+    } else {
+        fromTz = 'LOCAL';
+        fromLabel = 'LOCAL';
+    }
+
+    const tzOffsets = {
+        'UTC': 0, 'GMT': 0, 'EST': -5 * 60, 'EDT': -4 * 60,
+        'CST': -6 * 60, 'CDT': -5 * 60, 'MST': -7 * 60, 'MDT': -6 * 60,
+        'PST': -8 * 60, 'PDT': -7 * 60, 'IST': 5 * 60 + 30,
+        'JST': 9 * 60, 'AEST': 10 * 60, 'BST': 1 * 60,
+        'CET': 1 * 60, 'CEST': 2 * 60,
+        'LOCAL': -(new Date().getTimezoneOffset())
+    };
+    
+    const fromOffset = allTimezones[fromTz.toLowerCase()] || tzOffsets[fromTz] || 0;
+    const targetLower = target.toLowerCase();
+    const toOffset = allTimezones[targetLower] || tzOffsets[target.toUpperCase()] || 0;
+    const diffMinutes = toOffset - fromOffset;
+
+    let totalMinutes = (hours * 60) + minutes + diffMinutes;
+    let dayOffset = 0;
+    
+    while (totalMinutes >= 24 * 60) {
+        totalMinutes -= 24 * 60;
+        dayOffset++;
+    }
+    while (totalMinutes < 0) {
+        totalMinutes += 24 * 60;
+        dayOffset--;
+    }
+
+    let newHours = Math.floor(totalMinutes / 60);
+    let newMinutes = totalMinutes % 60;
+    let displayHours = newHours;
+    let ampm = 'AM';
+    
+    if (newHours >= 12) {
+        ampm = 'PM';
+        if (newHours > 12) displayHours = newHours - 12;
+    }
+    if (newHours === 0) displayHours = 12;
+
+    const formattedTime = `${displayHours}:${newMinutes.toString().padStart(2, '0')} ${ampm}`;
+    const targetLabel = target.split(' ').map(word => 
+        word.charAt(0).toUpperCase() + word.slice(1)
+    ).join(' ');
+    
+    let label = `Converted from ${fromLabel}`;
+    if (dayOffset !== 0) {
+        const dayText = dayOffset > 0 ? 'next day' : 'previous day';
+        label += ` (${dayText})`;
+    }
+
+    return {
+        value: `${formattedTime} (${targetLabel})`,
+        label: label
+    };
+}
+
 
     calculate(text) {
         try {
@@ -1440,6 +1647,10 @@ class QuippyFunctions {
     }
 
     async getMeaning(text, target) {
+        console.log('🔥🔥🔥🔥🔥 GET MEANING CALLED 🔥🔥🔥🔥🔥');
+        console.log('🔥 Word:', text);
+        console.log('🔥 Target:', target);
+        
         try {
             const word = text.trim().toLowerCase();
             const action = target ? target.toLowerCase() : 'define';
@@ -1501,13 +1712,186 @@ class QuippyFunctions {
                 
                 try {
                     if (action === 'define') {
-                        // Only show definitions, no examples or synonyms
-                        definitionsList = data.definitions.map(def => `
-                            <div style="margin-bottom: 12px;">
-                                <div style="font-family: 'DM Sans', sans-serif; font-style: italic; color: #888; font-size: 10px; font-weight: 600; line-height: 1.6;">${def.partOfSpeech || 'unknown'}</div>
-                                <div style="font-family: 'DM Sans', sans-serif; margin-top: 4px; font-size: 12px; font-weight: 400; line-height: 1.5; color: #4A4A4A;">${def.definition || 'No definition'}</div>
-                            </div>
-                        `).join('');
+                        console.log('🔥🔥🔥 DEFINE ACTION STARTING 🔥🔥🔥');
+                        console.log('📥 Raw definitions from API:', data.definitions.length);
+                        
+                        // STEP 1: Filter out ONLY genuinely rare/archaic definitions
+                        const filteredDefs = data.definitions.filter(def => {
+                            const defText = (def.definition || '').toLowerCase();
+                            
+                            console.log('🔍 Checking definition:', defText.substring(0, 80));
+                            
+                            // ULTRA-SPECIFIC filters - only removes truly rare meanings
+                            const rarePatterns = [
+                                // Scientific/biological
+                                'any of numerous species',
+                                'any of various species',
+                                'genus of',
+                                'family of',
+                                
+                                // Historical/archaic markers
+                                'archaic',
+                                'obsolete',
+                                
+                                // The specific rare "desert" meaning
+                                'usually in the plural',
+                                'that which is deserved or merited',
+                            ];
+                            
+                            // Check if this definition matches ANY rare pattern
+                            const isRare = rarePatterns.some(pattern => {
+                                const match = defText.includes(pattern);
+                                if (match) {
+                                    console.log(`❌ MATCHED RARE PATTERN: "${pattern}"`);
+                                }
+                                return match;
+                            });
+                            
+                            if (isRare) {
+                                console.log(`🚫 FILTERING OUT: ${defText.substring(0, 60)}...`);
+                            } else {
+                                console.log(`✅ KEEPING: ${defText.substring(0, 60)}...`);
+                            }
+                            
+                            return !isRare; // Keep it if NOT rare
+                        });
+                        
+                        // STEP 2: Smart sorting - prioritize SHORT, COMMON meanings
+                        const posOrder = ['verb', 'noun', 'adjective', 'adverb'];
+                        
+                        console.log(`📊 Total definitions: ${data.definitions.length}`);
+                        console.log(`📊 After filtering: ${filteredDefs.length}`);
+                        
+                        // Use filtered definitions (no fallback to originals)
+                        const sortedDefs = [...filteredDefs].sort((a, b) => {
+                            const posA = (a.partOfSpeech || '').toLowerCase();
+                            const posB = (b.partOfSpeech || '').toLowerCase();
+                            const defA = (a.definition || '').toLowerCase();
+                            const defB = (b.definition || '').toLowerCase();
+                            
+                            // PRIORITY 1: Deprioritize uncommon usage patterns
+                            const uncommonMarkersA = [
+                                'usually in the plural',
+                                'that which is',
+                            ].filter(marker => defA.includes(marker)).length;
+                            
+                            const uncommonMarkersB = [
+                                'usually in the plural',
+                                'that which is',
+                            ].filter(marker => defB.includes(marker)).length;
+                            
+                            if (uncommonMarkersA > uncommonMarkersB) return 1;
+                            if (uncommonMarkersB > uncommonMarkersA) return -1;
+                            
+                            // PRIORITY 2: Prioritize SHORTER definitions (more concise = more common)
+                            // Google shows short, clear definitions
+                            const lengthA = defA.length;
+                            const lengthB = defB.length;
+                            
+                            // Penalize very long definitions (>150 chars)
+                            if (lengthA > 150 && lengthB <= 150) return 1;
+                            if (lengthB > 150 && lengthA <= 150) return -1;
+                            
+                            // Among reasonable length defs, prefer shorter (40-100 chars)
+                            if (lengthA <= 150 && lengthB <= 150) {
+                                return lengthA - lengthB; // Shorter comes first
+                            }
+                            
+                            // PRIORITY 3: Prioritize by part of speech (verb/noun first)
+                            const indexA = posOrder.indexOf(posA);
+                            const indexB = posOrder.indexOf(posB);
+                            
+                            if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+                            if (indexA !== -1) return -1;
+                            if (indexB !== -1) return 1;
+                            
+                            return 0;
+                        });
+                        
+                        // STEP 3: Take ONLY top 3 definitions (Google style)
+                        let topDefs = sortedDefs.slice(0, 3);
+                        
+                        // Smart fallback: if we filtered out EVERYTHING, try Wikipedia instead
+                        if (topDefs.length === 0) {
+                            console.log('⚠️ All definitions filtered - trying Wikipedia fallback...');
+                            
+                            // Don't show the filtered rare definition - try Wikipedia instead
+                            try {
+                                const wikiResponse = await chrome.runtime.sendMessage({
+                                    action: 'fetch-wikipedia',
+                                    query: word
+                                });
+                                
+                                if (wikiResponse && wikiResponse.success) {
+                                    console.log('✅ Wikipedia fallback successful!');
+                                    const wikiData = wikiResponse.data;
+                                    
+                                    return {
+                                        value: wikiData.title || word,
+                                        label: `
+                                            <div style="max-height: 300px; overflow-y: auto;">
+                                                <div style="background: #e3f2fd; padding: 8px; border-radius: 4px; margin-bottom: 8px;">
+                                                    <div style="font-family: 'DM Sans', sans-serif; color: #1976d2; font-size: 10px; font-weight: 600; line-height: 1.6; margin-bottom: 4px;">📚 FROM WIKIPEDIA (Dictionary had only rare meanings)</div>
+                                                    ${wikiData.description ? `<div style="font-family: 'DM Sans', sans-serif; font-style: italic; color: #555; font-size: 10px; font-weight: 600; line-height: 1.6; margin-bottom: 8px;">${wikiData.description}</div>` : ''}
+                                                </div>
+                                                <div style="font-family: 'DM Sans', sans-serif; line-height: 1.5; color: #4A4A4A; font-size: 12px; font-weight: 400;">
+                                                    ${wikiData.extract || 'No description available'}
+                                                </div>
+                                                ${wikiData.url ? `<div style="margin-top: 12px; padding-top: 8px; border-top: 1px solid #ddd;">
+                                                    <a href="${wikiData.url}" target="_blank" style="font-family: 'DM Sans', sans-serif; color: #1976d2; font-size: 12px; font-weight: 400; text-decoration: none;">
+                                                        Read more on Wikipedia →
+                                                    </a>
+                                                </div>` : ''}
+                                            </div>
+                                        `
+                                    };
+                                }
+                            } catch (wikiError) {
+                                console.error('❌ Wikipedia fallback failed:', wikiError);
+                            }
+                            
+                            // If Wikipedia also fails, show a helpful message
+                            return {
+                                value: `"${word}"`,
+                                label: `<div style="font-family: 'DM Sans', sans-serif; font-size: 12px; color: #666;">
+                                    <div style="margin-bottom: 8px;">The dictionary only has rare/archaic definitions for this word.</div>
+                                    <div style="color: #888; font-size: 11px;">Try searching online for: "${word} definition"</div>
+                                </div>`
+                            };
+                        }
+                        
+                        if (topDefs.length === 0) {
+                            definitionsList = `<div style="font-family: 'DM Sans', sans-serif; font-size: 12px; color: #999;">No definitions found</div>`;
+                        } else {
+                            // Group by part of speech for clean display
+                            const groupedDefs = {};
+                            topDefs.forEach(def => {
+                                const pos = (def.partOfSpeech || 'other').toLowerCase();
+                                if (!groupedDefs[pos]) groupedDefs[pos] = [];
+                                groupedDefs[pos].push(def);
+                            });
+                            
+                            // Generate clean, concise HTML (like Google)
+                            definitionsList = Object.entries(groupedDefs).map(([pos, defs]) => {
+                                return defs.map((def, index) => {
+                                    // Keep definitions concise
+                                    let definition = def.definition || 'No definition';
+                                    if (definition.length > 100) {
+                                        definition = definition.substring(0, 100) + '...';
+                                    }
+                                    
+                                    const showPosLabel = index === 0;
+                                    return `
+                                        <div style="margin-bottom: 10px;">
+                                            ${showPosLabel ? `<div style="font-family: 'DM Sans', sans-serif; font-style: italic; color: #888; font-size: 10px; font-weight: 600; line-height: 1.6; margin-bottom: 4px;">
+                                                ${pos}
+                                            </div>` : ''}
+                                            <div style="font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 400; line-height: 1.5; color: #4A4A4A;">${definition}</div>
+                                        </div>
+                                    `;
+                                }).join('');
+                            }).join('');
+                        }
                     } else if (action === 'synonyms') {
                         // Only show synonyms
                         const allSynonyms = data.definitions

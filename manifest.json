@@ -54,8 +54,8 @@
   "commands": {
     "toggle-quippy": {
       "suggested_key": {
-        "default": "Ctrl+Q",
-        "mac": "Command+Q"
+        "default": "Ctrl+K",
+        "mac": "Command+K"
       },
       "description": "Toggle Quippy widget"
     }
