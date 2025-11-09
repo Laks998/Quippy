@@ -80,6 +80,9 @@ class QuippyWidget {
                                 <button class="quippy-chip icon-only" data-function="weight" title="Weight">
                                     <img src="${chrome.runtime.getURL('assets/weight.svg')}" width="20" height="20" alt="Weight" class="chip-icon">
                                 </button>
+                                <button class="quippy-chip icon-only" data-function="daycalculator" title="Day Calculator">
+                                    <img src="${chrome.runtime.getURL('assets/daycalculator.svg')}" width="20" height="20" alt="Day Calculator" class="chip-icon">
+                                </button>
                                 <button class="quippy-chip icon-only" data-function="area" title="Area">
                                     <img src="${chrome.runtime.getURL('assets/area.svg')}" width="20" height="20" alt="Area" class="chip-icon">
                                 </button>
@@ -147,6 +150,10 @@ class QuippyWidget {
                                     <button class="quippy-dropdown-item" data-function="weight" data-icon="weight.svg">
                                         <img src="${chrome.runtime.getURL('assets/weight.svg')}" width="18" height="18" alt="" class="item-icon">
                                         <span>Weight</span>
+                                    </button>
+                                    <button class="quippy-dropdown-item" data-function="daycalculator" data-icon="daycalculator.svg">
+                                        <img src="${chrome.runtime.getURL('assets/daycalculator.svg')}" width="18" height="18" alt="" class="item-icon">
+                                        <span>Day Calculator</span>
                                     </button>
                                     <button class="quippy-dropdown-item" data-function="area" data-icon="area.svg">
                                         <img src="${chrome.runtime.getURL('assets/area.svg')}" width="18" height="18" alt="" class="item-icon">
@@ -521,7 +528,8 @@ class QuippyWidget {
             'meaning': 'Meaning',
             'translator': 'Translator',
             'digital': 'Digital',
-            'design': 'Design'
+            'design': 'Design',
+            'daycalculator': 'Day Calculator'
         };
         
         // Placeholder mapping based on function type
@@ -538,7 +546,8 @@ class QuippyWidget {
             'meaning': 'define',
             'translator': 'es',
             'digital': 'Mbps',
-            'design': 'px'
+            'design': 'px',
+            'daycalculator': 'day'
         };
         
         if (currentIcon) {
@@ -599,6 +608,7 @@ class QuippyWidget {
             'volume': 'volume.svg',
             'duration': 'duration.svg',
             'temperature': 'temperature.svg',
+            'daycalculator': 'daycalculator.svg',
             'currency': 'currency.svg',
             'timezone': 'time.svg',
             'calculate': 'calculate.svg',
@@ -696,7 +706,7 @@ class QuippyWidget {
         message = message.replace(/server error/gi, "something went wrong");
         
         // Clean up any double spaces
-        message = message.replace(/\s+/g, ' ').trim();
+        message = message.replace(/[^\S\n]+/g, ' ').trim();
         
         // If message is empty after cleaning, provide default
         if (!message || message.length === 0) {
@@ -831,12 +841,16 @@ class QuippyWidget {
                     </div>
                 `;
             } else {
+                // Format the label to make "Best meeting time:" bold
+                let formattedLabel = result.label || '';
+                formattedLabel = formattedLabel.replace(/Best meeting time:/g, '<strong>Best meeting time:</strong>');
+                
                 resultsContent.innerHTML = `
                     <div class="result-item success">
                         <img src="${solutionUrl}" width="24" height="24" alt="" class="result-icon">
                         <div class="result-content">
                             <div class="result-value">${result.value}</div>
-                            <div class="result-label">${result.label || ''}</div>
+                            <div class="result-label" style="white-space: pre-line;">${formattedLabel}</div>
                         </div>
                     </div>
                 `;

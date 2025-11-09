@@ -26,7 +26,11 @@ class QuippyFunctions {
             // FIXED: Now captures optional minutes and timezone abbreviation OR country name
             timezone: /\b(\d{1,2})(?::(\d{2}))?\s*(am|pm|AM|PM)?\s*(?:(ist|pst|est|cst|mst|utc|gmt|edt|cdt|mdt|pdt|jst|aest|bst|cet|cest)|(?:in\s+)?(india|japan|china|uk|usa|america|australia|germany|france|canada|brazil|russia|korea|singapore|dubai|uae|italy|spain|mexico|thailand|vietnam|indonesia|philippines|malaysia|pakistan|egypt|turkey|argentina|south africa|new zealand|sweden|norway|denmark|finland|netherlands|belgium|switzerland|austria|ireland|portugal|poland|greece|toronto|vancouver|montreal|new york|los angeles|chicago|san francisco|miami|boston|seattle|dallas|houston|atlanta|denver|phoenix|philadelphia|london|paris|berlin|tokyo|sydney|melbourne|mumbai|delhi|bangalore|shanghai|beijing|hong kong|dubai|singapore|moscow|madrid|barcelona|rome|milan|amsterdam|brussels|zurich|vienna|stockholm|copenhagen|oslo|helsinki|lisbon|warsaw|prague|budapest|athens|istanbul|cairo|cape town|johannesburg|nairobi|lagos|buenos aires|rio de janeiro|sao paulo|mexico city|lima|santiago|bogota|bangkok|jakarta|manila|kuala lumpur|hanoi|ho chi minh|karachi|lahore|dhaka|tehran|riyadh|tel aviv|auckland|wellington))/i,
             // Calculation pattern - after normalization, only basic operators remain
-            calculation: /^[\d\s\+\-\*\/\(\)\.]+$/
+            calculation: /^[\d\s\+\-\*\/\(\)\.]+$/,
+            // Day calculator patterns
+            relativeDate: /\b(?:in\s+)?(\d+)\s+(day|days|week|weeks|month|months|year|years)(?:\s+(?:from\s+now|ago|later|before|back))?\b/i,
+            specificDate: /\b(\d{1,2}|[a-z]{3,9})[\s\/\-](\d{1,2}|[a-z]{3,9})[\s\/\-](\d{2,4})\b/i,
+            isoDate: /\b(\d{4})[\-\/](\d{1,2})[\-\/](\d{1,2})\b/
         };
     }
     
@@ -51,6 +55,22 @@ class QuippyFunctions {
             return { type: 'meaning', icon: 'meaning.svg' };
         }
         
+        // Check for DAY CALCULATOR patterns BEFORE other patterns
+        if (this.patterns.relativeDate.test(cleanText)) {
+            console.log('✅ Detected as: day calculator (relative date)');
+            return { type: 'daycalculator', icon: 'daycalculator.svg' };
+        }
+
+        if (this.patterns.isoDate.test(cleanText)) {
+            console.log('✅ Detected as: day calculator (ISO date)');
+            return { type: 'daycalculator', icon: 'daycalculator.svg' };
+        }
+
+        if (this.patterns.specificDate.test(cleanText)) {
+            console.log('✅ Detected as: day calculator (specific date)');
+            return { type: 'daycalculator', icon: 'daycalculator.svg' };
+        }
+
         // Normalize dashes and multiplication symbols for better detection
         cleanText = cleanText.replace(/[–—]/g, '-');  // en-dash, em-dash → minus
         cleanText = cleanText.replace(/[×]/g, '*');   // × → *
@@ -200,6 +220,8 @@ class QuippyFunctions {
                 return this.getMeaningSuggestions(text);
             case 'translator':
                 return this.getTranslatorSuggestions(text);
+            case 'daycalculator':
+                return this.getDayCalculatorSuggestions(text);
             default:
                 return [];
         }
@@ -584,6 +606,26 @@ class QuippyFunctions {
         ];
     }
 
+    getDayCalculatorSuggestions(text) {
+    const suggestions = [];
+    
+    if (this.patterns.relativeDate.test(text)) {
+        suggestions.push(
+            { label: 'Get Date', value: 'date', icon: 'daycalculator.svg' },
+            { label: 'Day of Week', value: 'day', icon: 'daycalculator.svg' }
+        );
+    }
+    else if (this.patterns.specificDate.test(text) || this.patterns.isoDate.test(text)) {
+        suggestions.push(
+            { label: 'Day of Week', value: 'day', icon: 'daycalculator.svg' },
+            { label: 'Age', value: 'age', icon: 'daycalculator.svg' },
+            { label: 'Days From Now', value: 'fromnow', icon: 'daycalculator.svg' }
+        );
+    }
+    
+    return suggestions;
+}
+
     async processFunction(text, functionType, target) {
         switch (functionType) {
             case 'weight':
@@ -612,6 +654,8 @@ class QuippyFunctions {
                 return await this.getMeaning(text, target);
             case 'translator':
                 return await this.translateText(text, target);
+            case 'daycalculator':
+                return this.calculateDay(text, target);
             default:
                 return { value: 'Function not yet implemented', label: '' };
         }
@@ -1442,12 +1486,237 @@ class QuippyFunctions {
         label += ` (${dayText})`;
     }
 
+    // Calculate overlapping work hours (9 AM - 5 PM)
+    const workStart = 9;
+    const workEnd = 17;
+    let overlapStart = null;
+    let overlapEnd = null;
+
+    for (let hour = workStart; hour <= workEnd; hour++) {
+        const convertedHour = (hour * 60 + diffMinutes) / 60;
+        if (convertedHour >= workStart && convertedHour <= workEnd) {
+            if (overlapStart === null) overlapStart = hour;
+            overlapEnd = hour;
+        }
+    }
+
+    if (overlapStart !== null && overlapEnd !== null) {
+        const formatHour = (h) => {
+            const period = h >= 12 ? 'PM' : 'AM';
+            const displayHour = h > 12 ? h - 12 : (h === 0 ? 12 : h);
+            return `${displayHour} ${period}`;
+        };
+        label += `\n\nBest meeting time:\n${formatHour(overlapStart)} - ${formatHour(overlapEnd)} (${fromLabel})`;
+    } else {
+        label += `\n\nNo overlapping work hours (9 AM - 5 PM)`;
+    }
+
     return {
         value: `${formattedTime} (${targetLabel})`,
         label: label
     };
 }
 
+    calculateDay(text, mode) {
+        try {
+            const cleanText = text.trim();
+            
+            const monthNames = {
+                'jan': 0, 'january': 0, 'feb': 1, 'february': 1,
+                'mar': 2, 'march': 2, 'apr': 3, 'april': 3,
+                'may': 4, 'jun': 5, 'june': 5,
+                'jul': 6, 'july': 6, 'aug': 7, 'august': 7,
+                'sep': 8, 'september': 8, 'oct': 9, 'october': 9,
+                'nov': 10, 'november': 10, 'dec': 11, 'december': 11
+            };
+            
+            const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const monthFullNames = ['January', 'February', 'March', 'April', 'May', 'June', 
+                                'July', 'August', 'September', 'October', 'November', 'December'];
+            
+            const relativeMatch = cleanText.match(this.patterns.relativeDate);
+            if (relativeMatch) {
+                const amount = parseInt(relativeMatch[1]);
+                const unit = relativeMatch[2].toLowerCase();
+                const isAgo = /ago|before|back/i.test(cleanText);
+                
+                const today = new Date();
+                let targetDate = new Date(today);
+                
+                if (unit.includes('day')) {
+                    targetDate.setDate(today.getDate() + (isAgo ? -amount : amount));
+                } else if (unit.includes('week')) {
+                    targetDate.setDate(today.getDate() + (isAgo ? -amount : amount) * 7);
+                } else if (unit.includes('month')) {
+                    targetDate.setMonth(today.getMonth() + (isAgo ? -amount : amount));
+                } else if (unit.includes('year')) {
+                    targetDate.setFullYear(today.getFullYear() + (isAgo ? -amount : amount));
+                }
+                
+                const dayOfWeek = dayNames[targetDate.getDay()];
+                const formattedDate = `${targetDate.getDate()} ${monthFullNames[targetDate.getMonth()]} ${targetDate.getFullYear()}`;
+                
+                return { value: formattedDate, label: `${dayOfWeek}` };
+            }
+            
+            const isoMatch = cleanText.match(this.patterns.isoDate);
+            if (isoMatch) {
+                const year = parseInt(isoMatch[1]);
+                const month = parseInt(isoMatch[2]) - 1;
+                const day = parseInt(isoMatch[3]);
+                const date = new Date(year, month, day);
+                
+                if (mode === 'day' || !mode) {
+                    return {
+                        value: dayNames[date.getDay()],
+                        label: `${date.getDate()} ${monthFullNames[date.getMonth()]} ${date.getFullYear()}`
+                    };
+                } else if (mode === 'age') {
+                    const today = new Date();
+                    let age = today.getFullYear() - date.getFullYear();
+                    const monthDiff = today.getMonth() - date.getMonth();
+                    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < date.getDate())) {
+                        age--;
+                    }
+                    
+                    let months = today.getMonth() - date.getMonth();
+                    if (today.getDate() < date.getDate()) {
+                        months--;
+                    }
+                    if (months < 0) {
+                        months += 12;
+                    }
+                    
+                    let ageStr = `${age} years`;
+                    if (months > 0) {
+                        ageStr += `, ${months} month${months > 1 ? 's' : ''}`;
+                    }
+                    
+                    return {
+                        value: ageStr + ' old',
+                        label: `Born on ${dayNames[date.getDay()]}, ${date.getDate()} ${monthFullNames[date.getMonth()]} ${date.getFullYear()}`
+                    };
+                } else if (mode === 'fromnow') {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    date.setHours(0, 0, 0, 0);
+                    
+                    const diffTime = date - today;
+                    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+                    
+                    if (diffDays === 0) {
+                        return { value: 'Today', label: dayNames[date.getDay()] };
+                    } else if (diffDays === 1) {
+                        return { value: 'Tomorrow', label: dayNames[date.getDay()] };
+                    } else if (diffDays === -1) {
+                        return { value: 'Yesterday', label: dayNames[date.getDay()] };
+                    } else if (diffDays > 0) {
+                        return { value: `In ${diffDays} days`, label: dayNames[date.getDay()] };
+                    } else {
+                        return { value: `${Math.abs(diffDays)} days ago`, label: dayNames[date.getDay()] };
+                    }
+                }
+            }
+            
+            const specificMatch = cleanText.match(this.patterns.specificDate);
+            if (specificMatch) {
+                let day, month, year;
+                const part1 = specificMatch[1];
+                const part2 = specificMatch[2];
+                const part3 = specificMatch[3];
+                
+                const monthName = part2.toLowerCase();
+                if (monthNames[monthName] !== undefined) {
+                    day = parseInt(part1);
+                    month = monthNames[monthName];
+                    year = parseInt(part3);
+                } else if (monthNames[part1?.toLowerCase()] !== undefined) {
+                    month = monthNames[part1.toLowerCase()];
+                    day = parseInt(part2);
+                    year = parseInt(part3);
+                } else {
+                    if (parseInt(part1) > 12) {
+                        day = parseInt(part1);
+                        month = parseInt(part2) - 1;
+                    } else if (parseInt(part2) > 12) {
+                        month = parseInt(part1) - 1;
+                        day = parseInt(part2);
+                    } else {
+                        day = parseInt(part1);
+                        month = parseInt(part2) - 1;
+                    }
+                    year = parseInt(part3);
+                }
+                
+                if (year < 100) {
+                    year += (year < 50) ? 2000 : 1900;
+                }
+                
+                const date = new Date(year, month, day);
+                
+                if (isNaN(date.getTime())) {
+                    return { value: 'Invalid date', label: 'Please check the date format' };
+                }
+                
+                if (mode === 'day' || !mode) {
+                    return {
+                        value: dayNames[date.getDay()],
+                        label: `${date.getDate()} ${monthFullNames[date.getMonth()]} ${date.getFullYear()}`
+                    };
+                } else if (mode === 'age') {
+                    const today = new Date();
+                    let age = today.getFullYear() - date.getFullYear();
+                    const monthDiff = today.getMonth() - date.getMonth();
+                    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < date.getDate())) {
+                        age--;
+                    }
+                    
+                    let months = today.getMonth() - date.getMonth();
+                    if (today.getDate() < date.getDate()) {
+                        months--;
+                    }
+                    if (months < 0) {
+                        months += 12;
+                    }
+                    
+                    let ageStr = `${age} years`;
+                    if (months > 0) {
+                        ageStr += `, ${months} month${months > 1 ? 's' : ''}`;
+                    }
+                    
+                    return {
+                        value: ageStr + ' old',
+                        label: `Born on ${dayNames[date.getDay()]}, ${date.getDate()} ${monthFullNames[date.getMonth()]} ${date.getFullYear()}`
+                    };
+                } else if (mode === 'fromnow') {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    date.setHours(0, 0, 0, 0);
+                    
+                    const diffTime = date - today;
+                    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+                    
+                    if (diffDays === 0) {
+                        return { value: 'Today', label: dayNames[date.getDay()] };
+                    } else if (diffDays === 1) {
+                        return { value: 'Tomorrow', label: dayNames[date.getDay()] };
+                    } else if (diffDays === -1) {
+                        return { value: 'Yesterday', label: dayNames[date.getDay()] };
+                    } else if (diffDays > 0) {
+                        return { value: `In ${diffDays} days`, label: dayNames[date.getDay()] };
+                    } else {
+                        return { value: `${Math.abs(diffDays)} days ago`, label: dayNames[date.getDay()] };
+                    }
+                }
+            }
+            
+            return { value: 'Sorry, we do not have that function', label: 'Please try the suggestions' };
+            
+        } catch (error) {
+            console.error('Day calculator error:', error);
+            return { value: 'Error', label: 'Failed to calculate date' };
+        }
+    }
 
     calculate(text) {
         try {
