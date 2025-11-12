@@ -24,7 +24,7 @@ class QuippyFunctions {
             // Currency pattern now requires EITHER a symbol OR a currency name
             currency: /(?:(\$|€|£|¥|₹)\s*([\d,]+\.?\d*))|(?:([\d,]+\.?\d*)\s+([A-Z]{3}|dollar|dollars|euro|euros|pound|pounds|yen|rupee|rupees))|(?:([A-Z]{3})\s+([\d,]+\.?\d*))/i,
             // FIXED: Now captures optional minutes and timezone abbreviation OR country name
-            timezone: /\b(\d{1,2})(?::(\d{2}))?\s*(am|pm|AM|PM)?\s*(?:(ist|pst|est|cst|mst|utc|gmt|edt|cdt|mdt|pdt|jst|aest|bst|cet|cest)|(?:in\s+)?(india|japan|china|uk|usa|america|australia|germany|france|canada|brazil|russia|korea|singapore|dubai|uae|italy|spain|mexico|thailand|vietnam|indonesia|philippines|malaysia|pakistan|egypt|turkey|argentina|south africa|new zealand|sweden|norway|denmark|finland|netherlands|belgium|switzerland|austria|ireland|portugal|poland|greece|toronto|vancouver|montreal|new york|los angeles|chicago|san francisco|miami|boston|seattle|dallas|houston|atlanta|denver|phoenix|philadelphia|london|paris|berlin|tokyo|sydney|melbourne|mumbai|delhi|bangalore|shanghai|beijing|hong kong|dubai|singapore|moscow|madrid|barcelona|rome|milan|amsterdam|brussels|zurich|vienna|stockholm|copenhagen|oslo|helsinki|lisbon|warsaw|prague|budapest|athens|istanbul|cairo|cape town|johannesburg|nairobi|lagos|buenos aires|rio de janeiro|sao paulo|mexico city|lima|santiago|bogota|bangkok|jakarta|manila|kuala lumpur|hanoi|ho chi minh|karachi|lahore|dhaka|tehran|riyadh|tel aviv|auckland|wellington))/i,
+            timezone: /\b(\d{1,2})(?::(\d{2}))?\s*(am|pm|AM|PM)?\s*(?:(?:utc|gmt)\s*([\+\-])(\d{1,2})(?::?(\d{2}))?|(ist|pst|est|cst|mst|utc|gmt|edt|cdt|mdt|pdt|jst|aest|bst|cet|cest)|(?:in\s+)?(india|japan|china|uk|usa|america|australia|germany|france|canada|brazil|russia|korea|singapore|dubai|uae|italy|spain|mexico|thailand|vietnam|indonesia|philippines|malaysia|pakistan|egypt|turkey|argentina|south africa|new zealand|sweden|norway|denmark|finland|netherlands|belgium|switzerland|austria|ireland|portugal|poland|greece|toronto|vancouver|montreal|new york|los angeles|chicago|san francisco|miami|boston|seattle|dallas|houston|atlanta|denver|phoenix|philadelphia|london|paris|berlin|tokyo|sydney|melbourne|mumbai|delhi|bangalore|shanghai|beijing|hong kong|dubai|singapore|moscow|madrid|barcelona|rome|milan|amsterdam|brussels|zurich|vienna|stockholm|copenhagen|oslo|helsinki|lisbon|warsaw|prague|budapest|athens|istanbul|cairo|cape town|johannesburg|nairobi|lagos|buenos aires|rio de janeiro|sao paulo|mexico city|lima|santiago|bogota|bangkok|jakarta|manila|kuala lumpur|hanoi|ho chi minh|karachi|lahore|dhaka|tehran|riyadh|tel aviv|auckland|wellington))/i,
             // Calculation pattern - after normalization, only basic operators remain
             calculation: /^[\d\s\+\-\*\/\(\)\.]+$/,
             // Day calculator patterns
@@ -167,16 +167,16 @@ class QuippyFunctions {
             return { type: 'digital', icon: 'digital.svg' };
         }
         
-        // Check for currency
-        if (this.patterns.currency.test(cleanText)) {
-            return { type: 'currency', icon: 'currency.svg' };
-        }
-        
-        // Check for time
+        // Check for time FIRST (before currency, to avoid UTC being detected as currency)
         if (this.patterns.timezone.test(cleanText)) {
             console.log('✅ Detected as: timezone');
             console.log('🔍 Timezone pattern matched:', cleanText.match(this.patterns.timezone));
             return { type: 'timezone', icon: 'time.svg' };
+        }
+
+        // Check for currency AFTER timezone
+        if (this.patterns.currency.test(cleanText)) {
+            return { type: 'currency', icon: 'currency.svg' };
         }
         
         // Check if text contains non-English characters (for auto-translator detection)
@@ -1369,8 +1369,17 @@ class QuippyFunctions {
     let hours = parseInt(match[1]);
     const minutes = match[2] ? parseInt(match[2]) : 0;
     const period = match[3] ? match[3].toUpperCase() : null;
-    const fromTzCode = match[4] ? match[4].toUpperCase() : null;
-    const fromCountry = match[5] ? match[5].toLowerCase() : null;
+
+    // NEW: UTC offset comes FIRST now (match[4], match[5], match[6])
+    const utcSign = match[4]; // + or -
+    const utcHours = match[5] ? parseInt(match[5]) : null;
+    const utcMinutes = match[6] ? parseInt(match[6]) : 0;
+
+    // THEN timezone code (match[7])
+    const fromTzCode = match[7] ? match[7].toUpperCase() : null;
+
+    // THEN country name (match[8])
+    const fromCountry = match[8] ? match[8].toLowerCase() : null;
 
     if (period) {
         if (period === 'PM' && hours !== 12) hours += 12;
@@ -1424,32 +1433,50 @@ class QuippyFunctions {
 
     const allTimezones = { ...cityTimezones, ...countryTimezones };
     
-    let fromTz, fromLabel;
-    if (fromCountry) {
+    let fromTz, fromLabel, fromOffset;
+    
+    // Check if UTC offset format (e.g., UTC+5:30)
+    if (utcHours !== null) {
+        const offsetMinutes = (utcHours * 60) + utcMinutes;
+        fromOffset = utcSign === '-' ? -offsetMinutes : offsetMinutes;
+        fromTz = `UTC${utcSign}${utcHours}${utcMinutes ? ':' + utcMinutes.toString().padStart(2, '0') : ''}`;
+        fromLabel = fromTz;
+    } else if (fromCountry) {
         fromTz = fromCountry;
         fromLabel = fromCountry.split(' ').map(word => 
             word.charAt(0).toUpperCase() + word.slice(1)
         ).join(' ');
+        fromOffset = allTimezones[fromTz.toLowerCase()] || 0;
     } else if (fromTzCode) {
         fromTz = fromTzCode;
         fromLabel = fromTzCode;
+        const tzOffsets = {
+            'UTC': 0, 'GMT': 0, 'EST': -5 * 60, 'EDT': -4 * 60,
+            'CST': -6 * 60, 'CDT': -5 * 60, 'MST': -7 * 60, 'MDT': -6 * 60,
+            'PST': -8 * 60, 'PDT': -7 * 60, 'IST': 5 * 60 + 30,
+            'JST': 9 * 60, 'AEST': 10 * 60, 'BST': 1 * 60,
+            'CET': 1 * 60, 'CEST': 2 * 60
+        };
+        fromOffset = tzOffsets[fromTz] || 0;
     } else {
         fromTz = 'LOCAL';
         fromLabel = 'LOCAL';
+        fromOffset = -(new Date().getTimezoneOffset());
     }
 
-    const tzOffsets = {
-        'UTC': 0, 'GMT': 0, 'EST': -5 * 60, 'EDT': -4 * 60,
-        'CST': -6 * 60, 'CDT': -5 * 60, 'MST': -7 * 60, 'MDT': -6 * 60,
-        'PST': -8 * 60, 'PDT': -7 * 60, 'IST': 5 * 60 + 30,
-        'JST': 9 * 60, 'AEST': 10 * 60, 'BST': 1 * 60,
-        'CET': 1 * 60, 'CEST': 2 * 60,
-        'LOCAL': -(new Date().getTimezoneOffset())
-    };
-    
-    const fromOffset = allTimezones[fromTz.toLowerCase()] || tzOffsets[fromTz] || 0;
     const targetLower = target.toLowerCase();
-    const toOffset = allTimezones[targetLower] || tzOffsets[target.toUpperCase()] || 0;
+    const toOffset = allTimezones[targetLower] || (() => {
+        const tzOffsets = {
+            'UTC': 0, 'GMT': 0, 'EST': -5 * 60, 'EDT': -4 * 60,
+            'CST': -6 * 60, 'CDT': -5 * 60, 'MST': -7 * 60, 'MDT': -6 * 60,
+            'PST': -8 * 60, 'PDT': -7 * 60, 'IST': 5 * 60 + 30,
+            'JST': 9 * 60, 'AEST': 10 * 60, 'BST': 1 * 60,
+            'CET': 1 * 60, 'CEST': 2 * 60,
+            'LOCAL': -(new Date().getTimezoneOffset())
+        };
+        return tzOffsets[target.toUpperCase()] || 0;
+    })();
+    
     const diffMinutes = toOffset - fromOffset;
 
     let totalMinutes = (hours * 60) + minutes + diffMinutes;
@@ -1506,7 +1533,7 @@ class QuippyFunctions {
             const displayHour = h > 12 ? h - 12 : (h === 0 ? 12 : h);
             return `${displayHour} ${period}`;
         };
-        label += `\n\nBest meeting time:\n${formatHour(overlapStart)} - ${formatHour(overlapEnd)} (${fromLabel})`;
+        label += `\n\n**Best meeting time:**\n${formatHour(overlapStart)} - ${formatHour(overlapEnd)} (${fromLabel})`;
     } else {
         label += `\n\nNo overlapping work hours (9 AM - 5 PM)`;
     }
@@ -1516,7 +1543,6 @@ class QuippyFunctions {
         label: label
     };
 }
-
     calculateDay(text, mode) {
         try {
             const cleanText = text.trim();

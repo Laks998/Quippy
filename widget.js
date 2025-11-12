@@ -123,11 +123,17 @@ class QuippyWidget {
                     <div id="quippy-active-state" class="quippy-state quippy-hidden">
                         <div class="quippy-selected-text">
                             <span class="selected-label">Selected Text:</span>
-                            <span class="selected-value" id="quippy-selected-text"></span>
-                            <button class="quippy-reselect-btn" id="quippy-reselect">
-                                <img src="${refreshUrl}" width="16" height="16" alt="">
-                                Re-select
-                            </button>
+                            <div class="quippy-text-input-wrapper">
+                                <input 
+                                    type="text" 
+                                    id="quippy-text-input"
+                                    class="quippy-text-input" 
+                                    placeholder="Type or edit text..."
+                                />
+                                    <button id="quippy-reset-btn" class="quippy-reset-btn" title="Reset to original">
+                                        <img src="${chrome.runtime.getURL('assets/revert.svg')}" width="16" height="16" alt="Reset">
+                                    </button>
+                            </div>
                         </div>
                         
                         <div class="quippy-action-area">
@@ -460,26 +466,127 @@ class QuippyWidget {
     }
 
     showWithText(text) {
-        this.open();
+    this.open();
+    
+    const initialState = document.getElementById('quippy-initial-state');
+    const activeState = document.getElementById('quippy-active-state');
+    const textInput = document.getElementById('quippy-text-input');
+    
+    if (initialState) initialState.classList.add('quippy-hidden');
+    if (activeState) activeState.classList.remove('quippy-hidden');
+    
+    // Set the input value and store original text
+    if (textInput) {
+        textInput.value = text;
+        this.originalText = text; // Store original for reset
+        this.currentText = text;   // Track current text
         
-        const initialState = document.getElementById('quippy-initial-state');
-        const activeState = document.getElementById('quippy-active-state');
-        const selectedTextSpan = document.getElementById('quippy-selected-text');
+        // Setup input event listener for live editing
+        this.setupTextInputListener(textInput);
         
-        if (initialState) initialState.classList.add('quippy-hidden');
-        if (activeState) activeState.classList.remove('quippy-hidden');
-        if (selectedTextSpan) selectedTextSpan.textContent = `"${text}"`;
+        // Setup reset button
+        this.setupResetButton();
+    }
+    
+    // Detect function and set it
+    const functions = window.quippyFunctions;
+    if (functions) {
+        const detection = functions.detectFunction(text);
+        this.selectFunction(detection.type, detection.icon);
         
-        // Detect function and set it
-        const functions = window.quippyFunctions;
-        if (functions) {
-            const detection = functions.detectFunction(text);
+        // Update suggestions
+        this.updateSuggestions(text, detection.type);
+    }
+}
+
+// ✅ SEPARATE METHOD - not nested!
+setupTextInputListener(textInput) {
+    if (!textInput) return;
+    
+    let detectionTimeout = null;
+    
+    // Remove old listener if exists
+    textInput.removeEventListener('input', this.textInputHandler);
+    
+    // Create and store handler
+    this.textInputHandler = (e) => {
+        this.currentText = e.target.value.trim();
+        
+        // Clear previous timeout
+        if (detectionTimeout) {
+            clearTimeout(detectionTimeout);
+        }
+        
+        // If text is empty, show placeholder state
+        if (!this.currentText) {
+            const dropdownBtn = document.getElementById('quippy-function-dropdown');
+            if (dropdownBtn) {
+                const dropdownText = dropdownBtn.querySelector('.dropdown-text');
+                if (dropdownText) dropdownText.textContent = 'Select function...';
+            }
+            
+            const suggestionsList = document.getElementById('quippy-suggestions-list');
+            if (suggestionsList) suggestionsList.innerHTML = '';
+            
+            this.clearInputAndResults();
+            return;
+        }
+        
+        // Debounce detection (wait 300ms after user stops typing)
+        detectionTimeout = setTimeout(() => {
+            console.log('🔄 Re-detecting function for:', this.currentText);
+            
+            const functions = window.quippyFunctions;
+            if (!functions) return;
+            
+            // Detect function type
+            const detection = functions.detectFunction(this.currentText);
+            console.log('✅ Detected:', detection);
+            
+            // Update function selector
             this.selectFunction(detection.type, detection.icon);
             
             // Update suggestions
-            this.updateSuggestions(text, detection.type);
-        }
-    }
+            this.updateSuggestions(this.currentText, detection.type);
+            
+            // Update selectedText to current text for processing
+            this.selectedText = this.currentText;
+            
+            // Clear any previous results
+            this.clearInputAndResults();
+        }, 300); // 300ms debounce delay
+    };
+    
+    // Add the listener
+    textInput.addEventListener('input', this.textInputHandler);
+}
+
+// ✅ SEPARATE METHOD - not nested!
+setupResetButton() {
+    const resetBtn = document.getElementById('quippy-reset-btn');
+    const textInput = document.getElementById('quippy-text-input');
+    
+    if (!resetBtn || !textInput) return;
+    
+    // Remove old listener if exists
+    resetBtn.removeEventListener('click', this.resetButtonHandler);
+    
+    // Create and store handler
+    this.resetButtonHandler = () => {
+        console.log('🔄 Resetting to original text:', this.originalText);
+        
+        // Restore original text
+        this.currentText = this.originalText;
+        this.selectedText = this.originalText;
+        textInput.value = this.originalText;
+        
+        // Trigger input event to re-detect
+        textInput.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+    
+    // Add the listener
+    resetBtn.addEventListener('click', this.resetButtonHandler);
+}
 
     enableReselect() {
         this.close();

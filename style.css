@@ -30,6 +30,7 @@
     --neutral-50: #FAFAFA;
 }
 
+
 #quippy-widget {
     position: fixed;
     top: 50%;
@@ -58,6 +59,8 @@
     user-select: none;
     transition: none !important;
 }
+
+
 
 /* Remove grab cursor from interactive elements */
 #quippy-widget button,
@@ -490,27 +493,31 @@
     gap: 10px;
     margin-bottom: 16px;
 }
-
+/* Keep the original yellow-bordered input (What should Quippy do?) */
 .quippy-input {
-    flex: 1;
+    flex: 1 !important;
     background: white !important;
-    border: 2px solid var(--brand-200);
-    border-radius: 12px;
-    padding: 12px 16px;
-    font-size: 14px;
-    font-weight: 400;
-    line-height: 1.428;
-    outline: none;
-    transition: all 0.2s;
-    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    border: 2px solid var(--brand-200) !important;
+    border-radius: 12px !important;
+    padding: 12px 16px !important;
+    font-size: 14px !important;
+    font-weight: 400 !important;
+    line-height: 1.428 !important;
+    outline: none !important;
+    transition: all 0.2s !important;
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
     color: var(--neutral-900) !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
     color-scheme: light !important;
+    box-sizing: border-box !important;
+    height: auto !important;
+    min-height: 48px !important;
+    margin: 0 !important;
 }
 
 .quippy-input:focus {
-    border-color: var(--brand-500);
-    box-shadow: 0 4px 12px rgba(255, 217, 61, 0.2);
+    border-color: var(--brand-500) !important;
+    box-shadow: 0 4px 12px rgba(255, 217, 61, 0.2) !important;
 }
 
 .quippy-input::placeholder {
@@ -670,7 +677,6 @@
 }
 
 /* Secondary text (like conversion label) - 12px regular */
-/* Secondary text (like conversion label) - 12px regular */
 .result-label {
     font-size: 12px;
     font-weight: 400;
@@ -817,4 +823,91 @@
 .quippy-text-highlight {
     background: rgba(255, 217, 61, 0.3) !important;
     outline: 2px solid var(--brand-500) !important;
+}
+
+/* Editable text input wrapper */
+.quippy-text-input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+}
+
+/* Editable text input - increased specificity to override site styles */
+#quippy-widget .quippy-text-input,
+#quippy-widget input.quippy-text-input,
+#quippy-widget input#quippy-text-input {
+    flex: 1 !important;
+    padding: 12px 16px !important;
+    border: 2px solid #F0F0F0 !important;
+    border-radius: 16px !important;
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    color: #2C2C2C !important;
+    background: #FAFAFA !important;
+    outline: none !important;
+    transition: all 0.2s ease !important;
+    box-sizing: border-box !important;
+    height: auto !important;
+    min-height: 48px !important;
+    line-height: normal !important;
+    margin: 0 !important;
+}
+
+#quippy-widget .quippy-text-input:focus,
+#quippy-widget input.quippy-text-input:focus,
+#quippy-widget input#quippy-text-input:focus {
+    border-color: #FFD93D !important;
+    background: #FFF !important;
+    box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.1) !important;
+}
+
+#quippy-widget .quippy-text-input::placeholder {
+    color: #999 !important;
+    font-style: italic !important;
+}
+/* Text input wrapper - increased specificity */
+#quippy-widget .quippy-text-input-wrapper {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    flex: 1 !important;
+}
+
+/* Reset button - increased specificity */
+#quippy-widget .quippy-reset-btn,
+#quippy-widget button.quippy-reset-btn,
+#quippy-widget button#quippy-reset-btn {
+    width: 48px !important;
+    height: 48px !important;
+    border: 2px solid #FFD93D !important;
+    border-radius: 10px !important;
+    background: #FFFFFF !important;
+    color: #2C2C2C !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+#quippy-widget .quippy-reset-btn:hover,
+#quippy-widget button.quippy-reset-btn:hover {
+    background: #FFFAEB !important;
+    border-color: #FFC107 !important;
+    transform: scale(1.05) !important;
+}
+
+#quippy-widget .quippy-reset-btn:active,
+#quippy-widget button.quippy-reset-btn:active {
+    transform: scale(0.95) !important;
+}
+
+#quippy-widget .quippy-reset-btn img {
+    width: 20px !important;
+    height: 20px !important;
 }
