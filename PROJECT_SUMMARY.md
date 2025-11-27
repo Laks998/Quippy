@@ -17,7 +17,7 @@ Quippy is a browser extension that provides quick text utilities triggered by Ct
 
 ### How It Works
 ```
-User presses Ctrl+Q
+User presses Ctrl+Shift+Q
 ↓
 background.js catches command
 ↓

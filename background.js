@@ -1,4 +1,8 @@
 // background.js - Handles API requests and commands
+// Firefox compatibility shim
+if (typeof browser !== "undefined") {
+    globalThis.chrome = browser;
+}
 
 // Listen for keyboard commands
 chrome.commands.onCommand.addListener((command) => {

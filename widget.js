@@ -34,7 +34,7 @@ class QuippyWidget {
 
         // Get proper URLs for all assets using chrome.runtime.getURL
         const logoUrl = chrome.runtime.getURL('assets/logo.svg');
-        const settingsUrl = chrome.runtime.getURL('assets/settings.svg');
+        //const settingsUrl = chrome.runtime.getURL('assets/settings.svg');
         const closeUrl = chrome.runtime.getURL('assets/close.svg');
         const selectTextUrl = chrome.runtime.getURL('assets/selecttext.svg');
         const refreshUrl = chrome.runtime.getURL('assets/refresh.svg');
@@ -52,9 +52,6 @@ class QuippyWidget {
                         <span class="quippy-title">Hi, I'm Quippy!</span>
                     </div>
                     <div class="quippy-controls">
-                        <button class="quippy-settings-btn" id="quippy-settings">
-                            <img src="${settingsUrl}" width="20" height="20" alt="Settings">
-                        </button>
                         <button class="quippy-close-btn" id="quippy-close">
                             <img src="${closeUrl}" width="20" height="20" alt="Close">
                         </button>

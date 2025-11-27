@@ -6,7 +6,7 @@ class QuippyFunctions {
             weight: /\b(\d+\.?\d*)\s*(kg|g|lb|lbs|oz|pound|pounds|gram|grams|kilogram|kilograms|ounce|ounces|mg|milligram|milligrams|ton|tons)\b/i,
             // Feet + inches pattern - matches formats like: 6'4", 6'4, 6ft 4in, 6' 4", 6 feet 4 inches
             feetInches: /(\d+)\s*(?:'|ft|feet)\s*(\d+)?\s*(?:"|''|in|inch|inches)?/i,
-            length: /\b(\d+\.?\d*)\s*(m|cm|mm|km|ft|feet|foot|inch|inches|in|mile|miles|yard|yards|yd|meter|meters|centimeter|centimeters|millimeter|millimeters|kilometer|kilometers)\b/i,
+            length: /\b(\d+\.?\d*)\s*(m|cm|mm|km|ft|feet|foot|inch|inches|in|mile|miles|yard|yards|yd|meter|metre|meters|centimeter|centimeters|millimeter|millimeters|kilometer|kilometers)\b/i,
             // Duration pattern for time units
             duration: /\b(\d+\.?\d*)\s*(hr|hrs|hour|hours|min|mins|minute|minutes|sec|secs|second|seconds|day|days|week|weeks|month|months|year|years|yr|yrs)\b/i,
             // Design units pattern - px, rem, em, pt, dp, sp, inches
@@ -16,9 +16,9 @@ class QuippyFunctions {
             // Area calculation pattern - detects "5m x 6m", "12ft by 10ft", etc. BEFORE area pattern
             areaCalc: /\b(\d+\.?\d*)\s*(m|cm|mm|km|ft|feet|foot|inch|inches|in|mile|miles|yard|yards|yd|meter|meters)\s*(?:x|×|by)\s*(\d+\.?\d*)\s*(m|cm|mm|km|ft|feet|foot|inch|inches|in|mile|miles|yard|yards|yd|meter|meters)\b/i,
             // Area pattern - square meters, square feet, acres, hectares, etc. (no trailing \b for Unicode ²)
-            area: /\b(\d+\.?\d*)\s*(m²|m2|sq m|sqm|square meter|square meters|ft²|ft2|sq ft|sqft|square foot|square feet|km²|km2|sq km|square kilometer|square kilometers|acre|acres|hectare|hectares|ha|cm²|cm2|sq cm|square centimeter|square centimeters|mm²|mm2|sq mm|square millimeter|square millimeters|in²|in2|sq in|square inch|square inches|yd²|yd2|sq yd|square yard|square yards)/i,
+            area: /\b([\d,]+\.?\d*)\s*(m²|m2|sq m|sqm|square-meter|square-metre|square metre|square meter|square meters|ft²|ft2|sq ft|sqft|square foot|square feet|km²|km2|sq km|square kilometer|square kilometers|acre|acres|hectare|hectares|ha|cm²|cm2|sq cm|square centimeter|square centimeters|mm²|mm2|sq mm|square millimeter|square millimeters|in²|in2|sq in|square inch|square inches|yd²|yd2|sq yd|square yard|square yards)/i,
             // Volume pattern - cubic meters, liters, gallons, etc. (no trailing \b for Unicode ³)
-            volume: /\b(\d+\.?\d*)\s*(m³|m3|cubic meter|cubic meters|ft³|ft3|cubic foot|cubic feet|cm³|cm3|cc|cubic centimeter|cubic centimeters|l|liter|liters|litre|litres|ml|milliliter|milliliters|millilitre|millilitres|gal|gallon|gallons|qt|quart|quarts|pt|pint|pints|cup|cups|fl oz|fluid ounce|fluid ounces|tbsp|tablespoon|tablespoons|tsp|teaspoon|teaspoons)/i,
+            volume: /\b([\d,]+\.?\d*)\s*(m³|m3|cubic meter|cubic meters|ft³|ft3|cubic foot|cubic feet|cm³|cm3|cc|cubic centimeter|cubic centimeters|l|liter|liters|litre|litres|ml|milliliter|milliliters|millilitre|millilitres|gal|gallon|gallons|qt|quart|quarts|pt|pint|pints|cup|cups|fl oz|fluid ounce|fluid ounces|tbsp|tablespoon|tablespoons|tsp|teaspoon|teaspoons)/i,
             // Temperature pattern - requires degree symbol with C/F/K or full word to avoid conflicts
             temperature: /\b(-?\d+\.?\d*)\s*(°\s*[CcFfKk]|celsius|fahrenheit|kelvin)\b/i,
             // Currency pattern now requires EITHER a symbol OR a currency name
@@ -1011,9 +1011,9 @@ class QuippyFunctions {
         // Check if it's an area CALCULATION (5m x 6m, 12ft by 10ft)
         const calcMatch = text.match(this.patterns.areaCalc);
         if (calcMatch) {
-            const length = parseFloat(calcMatch[1]);
+            const length = parseFloat(calcMatch[1].replace(/,/g, ''));
             const lengthUnit = calcMatch[2].toLowerCase();
-            const width = parseFloat(calcMatch[3]);
+            const width = parseFloat(calcMatch[3].replace(/,/g, ''));
             const widthUnit = calcMatch[4].toLowerCase();
 
             // Normalize length unit names
@@ -1051,9 +1051,8 @@ class QuippyFunctions {
             // Convert to target square unit
             const toUnit = target.toLowerCase();
             const normalizeAreaUnit = (unit) => {
-                unit = unit.replace(/²/g, '2').replace(/\s+/g, '');
-                if (['m²', 'm2', 'sqm', 'squaremeter', 'squaremeters'].includes(unit)) return 'm2';
-                if (['cm²', 'cm2', 'sqcm', 'squarecentimeter', 'squarecentimeters'].includes(unit)) return 'cm2';
+                unit = unit.replace(/²/g, '2').replace(/\s+/g, '').replace(/-/g, '');  // ✅ ADD hyphen removal
+                if (['m²', 'm2', 'sqm', 'squaremeter', 'squaremeters', 'squaremetre', 'squaremetres'].includes(unit)) return 'm2';
                 if (['mm²', 'mm2', 'sqmm', 'squaremillimeter', 'squaremillimeters'].includes(unit)) return 'mm2';
                 if (['km²', 'km2', 'sqkm', 'squarekilometer', 'squarekilometers'].includes(unit)) return 'km2';
                 if (['ft²', 'ft2', 'sqft', 'squarefoot', 'squarefeet'].includes(unit)) return 'sqft';
@@ -1109,7 +1108,7 @@ class QuippyFunctions {
             return { value: 'Invalid area format', label: '' };
         }
 
-        const value = parseFloat(match[1]);
+        const value = parseFloat(match[1].replace(/,/g, ''));
         let fromUnit = match[2].toLowerCase();
         let toUnit = target.toLowerCase();
 
